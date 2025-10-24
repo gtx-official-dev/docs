@@ -1,0 +1,766 @@
+---
+title: 'Python SDK'
+description: 'Official Python SDK for GTX DEX integration, trading automation, and analytics'
+---
+
+# GTX DEX Python SDK
+
+The official Python SDK provides comprehensive integration with GTX DEX, enabling developers to build trading applications, analytics platforms, and automated strategies with full asyncio support and type hints.
+
+## Installation
+
+<CodeGroup>
+
+```bash pip
+pip install gtx-dex-sdk
+```
+
+```bash poetry
+poetry add gtx-dex-sdk
+```
+
+```bash conda
+conda install -c conda-forge gtx-dex-sdk
+```
+
+</CodeGroup>
+
+## Quick Start
+
+<CodeGroup>
+
+```python Basic Setup - RiseLabs
+import asyncio
+from gtx import GTXClient, ChainId
+
+async def main():
+    # Initialize the client for RiseLabs Testnet
+    client = GTXClient(
+        chain_id=ChainId.RISE_TESTNET,
+        rpc_url="https://testnet-rpc.riselabs.xyz",
+        private_key="your_private_key"  # Optional for read-only operations
+    )
+    
+    # Get market data
+    markets = await client.get_markets()
+    print(f"Available markets: {len(markets)}")
+    
+    # Get current price
+    price = await client.get_price("ETHUSDC")
+    print(f"ETH price: ${price}")
+
+# Run the async function
+asyncio.run(main())
+```
+
+```python Basic Setup - Base Sepolia
+import asyncio
+from gtx import GTXClient, ChainId
+
+async def main():
+    # Initialize the client for Base Sepolia
+    client = GTXClient(
+        chain_id=ChainId.BASE_SEPOLIA,
+        rpc_url="https://sepolia.base.org",
+        private_key="your_private_key"  # Optional for read-only operations
+    )
+    
+    # Get market data
+    markets = await client.get_markets()
+    print(f"Available markets: {len(markets)}")
+    
+    # Get current price
+    price = await client.get_price("ETHUSDC")
+    print(f"ETH price: ${price}")
+    
+    await client.close()
+
+# Run the async function
+asyncio.run(main())
+```
+
+```python With Environment Variables
+import os
+from gtx import GTXClient, ChainId
+
+# Using environment variables for configuration
+client = GTXClient(
+    chain_id=ChainId.RISE_TESTNET,
+    rpc_url=os.getenv("GTX_RPC_URL", "https://testnet-rpc.riselabs.xyz"),
+    private_key=os.getenv("GTX_PRIVATE_KEY"),
+    api_key=os.getenv("GTX_API_KEY")  # For enhanced rate limits
+)
+```
+
+</CodeGroup>
+
+## Core Features
+
+### Market Data
+
+<AccordionGroup>
+  <Accordion title="Fetch All Markets">
+    ```python
+    # Get all available trading pairs
+    markets = await client.get_markets()
+    
+    for market in markets:
+        print(f"{market.symbol}: ${market.latest_price}")
+        print(f"24h Volume: ${market.volume_in_quote}")
+        print(f"Liquidity: ${market.total_liquidity_in_quote}")
+    ```
+  </Accordion>
+  
+  <Accordion title="Order Book Depth">
+    ```python
+    # Get order book with depth
+    depth = await client.get_order_book_depth("ETHUSDC", levels=10)
+    
+    print(f"Best Bid: {depth.bids[0]}")  # [price, quantity]
+    print(f"Best Ask: {depth.asks[0]}")  # [price, quantity]
+    
+    # Calculate spread
+    spread = float(depth.asks[0][0]) - float(depth.bids[0][0])
+    print(f"Spread: ${spread:.2f}")
+    ```
+  </Accordion>
+  
+  <Accordion title="Historical Data">
+    ```python
+    from datetime import datetime, timedelta
+    
+    # Get recent trades
+    trades = await client.get_trades("ETHUSDC", limit=50)
+    
+    for trade in trades:
+        print(f"{trade.side} {trade.qty} at ${trade.price}")
+    
+    # Get candlestick data
+    end_time = datetime.now()
+    start_time = end_time - timedelta(hours=24)
+    
+    candles = await client.get_klines(
+        symbol="ETHUSDC",
+        interval="1h",
+        start_time=start_time,
+        limit=100
+    )
+    
+    for candle in candles:
+        print(f"OHLC: {candle.open}, {candle.high}, {candle.low}, {candle.close}")
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Trading Operations
+
+#### Place Orders
+
+<CodeGroup>
+
+```python Limit Orders
+from gtx.types import OrderSide, OrderType
+
+# Place a limit buy order
+buy_order = await client.place_order(
+    symbol="ETHUSDC",
+    side=OrderSide.BUY,
+    order_type=OrderType.LIMIT,
+    quantity="1.5",
+    price="2400.00"
+)
+
+print(f"Order ID: {buy_order.order_id}")
+
+# Place a limit sell order
+sell_order = await client.place_order(
+    symbol="ETHUSDC",
+    side=OrderSide.SELL,
+    order_type=OrderType.LIMIT,
+    quantity="1.0",
+    price="2600.00"
+)
+```
+
+```python Market Orders
+# Place a market buy order
+market_buy = await client.place_order(
+    symbol="ETHUSDC",
+    side=OrderSide.BUY,
+    order_type=OrderType.MARKET,
+    quantity="0.5"
+)
+
+# Place a market sell order
+market_sell = await client.place_order(
+    symbol="ETHUSDC",
+    side=OrderSide.SELL,
+    order_type=OrderType.MARKET,
+    quantity="0.3"
+)
+```
+
+</CodeGroup>
+
+#### Order Management
+
+```python
+# Get user's open orders
+open_orders = await client.get_open_orders("ETHUSDC")
+print(f"You have {len(open_orders)} open orders")
+
+# Get all order history
+all_orders = await client.get_all_orders(symbol="ETHUSDC", limit=100)
+
+# Cancel an order
+await client.cancel_order(order_id)
+
+# Cancel all orders for a symbol
+await client.cancel_all_orders("ETHUSDC")
+
+# Get specific order details
+order = await client.get_order(order_id)
+print(f"Order status: {order.status}")
+```
+
+### Account Management
+
+```python
+# Get account information
+account = await client.get_account()
+print(f"Trading permissions: {account.permissions}")
+print(f"Fee rates - Maker: {account.maker_commission}, Taker: {account.taker_commission}")
+
+# Check balances
+for balance in account.balances:
+    print(f"{balance.asset}: {balance.free} available, {balance.locked} locked")
+
+# Get cross-chain deposit history
+deposits = await client.get_cross_chain_deposits(limit=50)
+for deposit in deposits.items:
+    print(f"{deposit.amount} from chain {deposit.source_chain_id} - Status: {deposit.status}")
+```
+
+## Advanced Features
+
+### WebSocket Streaming
+
+```python
+from gtx import GTXWebSocketClient
+
+# WebSocket client for real-time data
+ws_client = GTXWebSocketClient(url="wss://ws.gtxdex.xyz")
+
+# Subscribe to price updates
+async def handle_ticker(ticker):
+    print(f"Price update: {ticker.last_price}")
+    print(f"24h change: {ticker.price_change_percent}")
+
+await ws_client.subscribe_ticker("ETHUSDC", handle_ticker)
+
+# Subscribe to trade stream
+async def handle_trade(trade):
+    print(f"New trade: {trade.price} {trade.qty}")
+
+await ws_client.subscribe_trades("ETHUSDC", handle_trade)
+
+# Subscribe to order book updates
+async def handle_depth(depth):
+    print("Order book updated")
+    print(f"Best bid: {depth.bids[0]}")
+    print(f"Best ask: {depth.asks[0]}")
+
+await ws_client.subscribe_order_book("ETHUSDC", handle_depth)
+
+# Subscribe to user order updates
+async def handle_order_update(order):
+    print(f"Order update: {order.status}")
+
+await ws_client.subscribe_user_orders(user_address, handle_order_update)
+```
+
+### Yield Analytics
+
+```python
+# Track yield generation
+yield_stats = await client.get_yield_stats()
+print(f"Current APY: {yield_stats.current_apy}")
+print(f"Total earned this month: {yield_stats.monthly_earnings}")
+print(f"Pending GTX rewards: {yield_stats.pending_gtx}")
+
+# Calculate projected yields
+projection = await client.calculate_yield_projection(
+    position_size=10000,
+    time_frame=30,  # days
+    strategy="market_making"
+)
+
+print(f"Projected monthly yield: {projection.monthly_yield}")
+print(f"Effective APY: {projection.effective_apy}")
+```
+
+## Trading Strategies
+
+### Market Making Bot
+
+```python
+import asyncio
+from typing import Optional
+
+class MarketMakingBot:
+    def __init__(self, client: GTXClient, symbol: str, spread: float, order_size: float):
+        self.client = client
+        self.symbol = symbol
+        self.spread = spread
+        self.order_size = order_size
+        self.buy_order_id: Optional[str] = None
+        self.sell_order_id: Optional[str] = None
+        
+    async def start(self):
+        """Start the market making bot"""
+        # Get initial market data
+        ticker = await self.client.get_ticker_24hr(self.symbol)
+        mid_price = (float(ticker.bid_price) + float(ticker.ask_price)) / 2
+        
+        # Place initial orders
+        await self.place_orders(mid_price)
+        
+        # Subscribe to price updates
+        ws_client = GTXWebSocketClient()
+        await ws_client.subscribe_ticker(self.symbol, self.handle_price_update)
+        
+    async def place_orders(self, mid_price: float):
+        """Place buy and sell orders around mid price"""
+        buy_price = mid_price * (1 - self.spread / 2)
+        sell_price = mid_price * (1 + self.spread / 2)
+        
+        try:
+            # Cancel existing orders
+            if self.buy_order_id:
+                await self.client.cancel_order(self.buy_order_id)
+            if self.sell_order_id:
+                await self.client.cancel_order(self.sell_order_id)
+            
+            # Place new orders
+            buy_order = await self.client.place_order(
+                symbol=self.symbol,
+                side=OrderSide.BUY,
+                order_type=OrderType.LIMIT,
+                quantity=str(self.order_size),
+                price=f"{buy_price:.2f}"
+            )
+            self.buy_order_id = buy_order.order_id
+            
+            sell_order = await self.client.place_order(
+                symbol=self.symbol,
+                side=OrderSide.SELL,
+                order_type=OrderType.LIMIT,
+                quantity=str(self.order_size),
+                price=f"{sell_price:.2f}"
+            )
+            self.sell_order_id = sell_order.order_id
+            
+            print(f"Placed orders at {buy_price:.2f} / {sell_price:.2f}")
+            
+        except Exception as error:
+            print(f"Failed to place orders: {error}")
+    
+    async def handle_price_update(self, ticker):
+        """Handle price updates and adjust orders"""
+        new_mid_price = (float(ticker.bid_price) + float(ticker.ask_price)) / 2
+        await self.place_orders(new_mid_price)
+
+# Usage
+async def run_market_maker():
+    client = GTXClient(chain_id=ChainId.RISE_TESTNET)
+    bot = MarketMakingBot(client, "ETHUSDC", 0.002, 1.0)  # 0.2% spread, 1.0 ETH size
+    await bot.start()
+```
+
+### Portfolio Management
+
+```python
+from dataclasses import dataclass
+from typing import Dict, List
+
+@dataclass
+class Position:
+    symbol: str
+    quantity: float
+    avg_price: float
+    current_price: float
+    pnl: float
+    yield_earned: float
+
+class PortfolioManager:
+    def __init__(self, client: GTXClient):
+        self.client = client
+        
+    async def get_portfolio_snapshot(self) -> List[Position]:
+        """Get current portfolio positions with P&L"""
+        account = await self.client.get_account()
+        positions = []
+        
+        for balance in account.balances:
+            if float(balance.free) > 0 or float(balance.locked) > 0:
+                # Get current market price
+                try:
+                    ticker = await self.client.get_ticker_24hr(f"{balance.asset}USDC")
+                    current_price = float(ticker.last_price)
+                except:
+                    current_price = 0
+                
+                total_quantity = float(balance.free) + float(balance.locked)
+                
+                # Calculate yield earned (simplified)
+                yield_stats = await self.client.get_yield_stats()
+                yield_earned = total_quantity * current_price * 0.001  # Placeholder calculation
+                
+                position = Position(
+                    symbol=balance.asset,
+                    quantity=total_quantity,
+                    avg_price=0,  # Would need order history to calculate
+                    current_price=current_price,
+                    pnl=0,  # Would need purchase history
+                    yield_earned=yield_earned
+                )
+                positions.append(position)
+                
+        return positions
+    
+    async def rebalance_portfolio(self, target_allocation: Dict[str, float]):
+        """Rebalance portfolio to target allocation"""
+        positions = await self.get_portfolio_snapshot()
+        total_value = sum(p.quantity * p.current_price for p in positions)
+        
+        for symbol, target_percent in target_allocation.items():
+            target_value = total_value * target_percent
+            current_position = next((p for p in positions if p.symbol == symbol), None)
+            current_value = current_position.quantity * current_position.current_price if current_position else 0
+            
+            difference = target_value - current_value
+            
+            if abs(difference) > 10:  # Minimum rebalance threshold
+                if difference > 0:
+                    # Need to buy
+                    await self.client.place_order(
+                        symbol=f"{symbol}USDC",
+                        side=OrderSide.BUY,
+                        order_type=OrderType.MARKET,
+                        quantity=str(abs(difference) / current_position.current_price)
+                    )
+                else:
+                    # Need to sell
+                    await self.client.place_order(
+                        symbol=f"{symbol}USDC",
+                        side=OrderSide.SELL,
+                        order_type=OrderType.MARKET,
+                        quantity=str(abs(difference) / current_position.current_price)
+                    )
+```
+
+### Arbitrage Detection
+
+```python
+class ArbitrageMonitor:
+    def __init__(self, client: GTXClient, symbols: List[str], threshold: float):
+        self.client = client
+        self.symbols = symbols
+        self.threshold = threshold
+        
+    async def start_monitoring(self):
+        """Start monitoring for arbitrage opportunities"""
+        while True:
+            await self.check_arbitrage_opportunities()
+            await asyncio.sleep(5)  # Check every 5 seconds
+    
+    async def check_arbitrage_opportunities(self):
+        """Check for arbitrage opportunities across symbols"""
+        for symbol in self.symbols:
+            try:
+                depth = await self.client.get_order_book_depth(symbol, levels=5)
+                best_bid = float(depth.bids[0][0])
+                best_ask = float(depth.asks[0][0])
+                
+                spread_percent = ((best_ask - best_bid) / best_bid) * 100
+                
+                if spread_percent > self.threshold:
+                    print(f"Arbitrage opportunity in {symbol}: {spread_percent:.3f}% spread")
+                    print(f"Best bid: {best_bid}, Best ask: {best_ask}")
+                    
+                    # Execute arbitrage logic
+                    await self.execute_arbitrage(symbol, best_bid, best_ask)
+                    
+            except Exception as error:
+                print(f"Error checking {symbol}: {error}")
+    
+    async def execute_arbitrage(self, symbol: str, bid: float, ask: float):
+        """Execute arbitrage strategy"""
+        print(f"Executing arbitrage for {symbol}...")
+        # Implement arbitrage execution logic here
+```
+
+## Data Analysis & Visualization
+
+### Price Analysis
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
+
+class PriceAnalyzer:
+    def __init__(self, client: GTXClient):
+        self.client = client
+    
+    async def get_price_history(self, symbol: str, days: int = 30) -> pd.DataFrame:
+        """Get historical price data as DataFrame"""
+        end_time = datetime.now()
+        start_time = end_time - timedelta(days=days)
+        
+        klines = await self.client.get_klines(
+            symbol=symbol,
+            interval="1h",
+            start_time=start_time,
+            limit=days * 24
+        )
+        
+        data = []
+        for kline in klines:
+            data.append({
+                'timestamp': datetime.fromtimestamp(kline.open_time / 1000),
+                'open': float(kline.open),
+                'high': float(kline.high),
+                'low': float(kline.low),
+                'close': float(kline.close),
+                'volume': float(kline.volume)
+            })
+        
+        return pd.DataFrame(data)
+    
+    async def calculate_technical_indicators(self, symbol: str) -> Dict:
+        """Calculate common technical indicators"""
+        df = await self.get_price_history(symbol)
+        
+        # Simple Moving Averages
+        df['sma_20'] = df['close'].rolling(window=20).mean()
+        df['sma_50'] = df['close'].rolling(window=50).mean()
+        
+        # RSI
+        delta = df['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df['rsi'] = 100 - (100 / (1 + rs))
+        
+        # MACD
+        ema_12 = df['close'].ewm(span=12).mean()
+        ema_26 = df['close'].ewm(span=26).mean()
+        df['macd'] = ema_12 - ema_26
+        df['macd_signal'] = df['macd'].ewm(span=9).mean()
+        
+        return df.tail(1).to_dict('records')[0]
+    
+    def plot_price_chart(self, df: pd.DataFrame, symbol: str):
+        """Create price chart with indicators"""
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10))
+        
+        # Price chart
+        ax1.plot(df['timestamp'], df['close'], label='Price')
+        ax1.plot(df['timestamp'], df['sma_20'], label='SMA 20')
+        ax1.plot(df['timestamp'], df['sma_50'], label='SMA 50')
+        ax1.set_title(f'{symbol} Price Chart')
+        ax1.legend()
+        
+        # Volume
+        ax2.bar(df['timestamp'], df['volume'], alpha=0.7)
+        ax2.set_title('Volume')
+        
+        # RSI
+        ax3.plot(df['timestamp'], df['rsi'])
+        ax3.axhline(y=70, color='r', linestyle='--')
+        ax3.axhline(y=30, color='g', linestyle='--')
+        ax3.set_title('RSI')
+        ax3.set_ylim(0, 100)
+        
+        plt.tight_layout()
+        plt.show()
+```
+
+## Error Handling
+
+```python
+from gtx.exceptions import GTXError, GTXErrorCode
+
+async def safe_trading_operation():
+    try:
+        order = await client.place_order(
+            symbol="ETHUSDC",
+            side=OrderSide.BUY,
+            order_type=OrderType.LIMIT,
+            quantity="1.0",
+            price="2500.00"
+        )
+        return order
+        
+    except GTXError as error:
+        if error.code == GTXErrorCode.INSUFFICIENT_BALANCE:
+            print("Insufficient balance for trade")
+            # Handle insufficient balance
+        elif error.code == GTXErrorCode.INVALID_SYMBOL:
+            print("Trading pair not found")
+            # Handle invalid symbol
+        elif error.code == GTXErrorCode.RATE_LIMIT_EXCEEDED:
+            print("Rate limit exceeded, waiting...")
+            await asyncio.sleep(5)
+            # Retry the operation
+        else:
+            print(f"Unknown GTX error: {error.message}")
+            
+    except Exception as error:
+        print(f"Network or other error: {error}")
+        # Handle general errors
+```
+
+## Configuration and Environment
+
+### Settings Management
+
+```python
+from gtx.config import GTXConfig
+import os
+
+# Load configuration from environment
+config = GTXConfig(
+    chain_id=ChainId.RISE_TESTNET,
+    rpc_url=os.getenv("GTX_RPC_URL", "https://testnet-rpc.riselabs.xyz"),
+    private_key=os.getenv("GTX_PRIVATE_KEY"),
+    api_base_url=os.getenv("GTX_API_URL", "https://api.gtxdex.xyz"),
+    ws_url=os.getenv("GTX_WS_URL", "wss://ws.gtxdex.xyz"),
+    max_requests_per_minute=600,
+    retry_attempts=3,
+    retry_delay=1.0,
+    debug=bool(os.getenv("GTX_DEBUG", False))
+)
+
+client = GTXClient(config=config)
+```
+
+### Logging Configuration
+
+```python
+import logging
+
+# Configure logging for GTX SDK
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Enable debug logging for GTX operations
+gtx_logger = logging.getLogger('gtx')
+gtx_logger.setLevel(logging.DEBUG)
+```
+
+## Testing
+
+```python
+# Mock client for testing
+from gtx.testing import GTXMockClient
+
+mock_client = GTXMockClient()
+
+# Set up mock responses
+mock_client.mock_get_markets([
+    {
+        "symbol": "ETHUSDC",
+        "latest_price": "2500.00",
+        # ... other properties
+    }
+])
+
+mock_client.mock_place_order(lambda params: {
+    "order_id": "mock-order-123",
+    "status": "NEW"
+})
+
+# Use in tests
+markets = await mock_client.get_markets()
+assert len(markets) == 1
+assert markets[0].symbol == "ETHUSDC"
+```
+
+## Type Definitions
+
+```python
+from typing import Union, Optional, List
+from enum import Enum
+from dataclasses import dataclass
+
+class OrderSide(Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+
+class OrderType(Enum):
+    LIMIT = "LIMIT"
+    MARKET = "MARKET"
+
+class OrderStatus(Enum):
+    NEW = "NEW"
+    PARTIALLY_FILLED = "PARTIALLY_FILLED"
+    FILLED = "FILLED"
+    CANCELED = "CANCELED"
+    REJECTED = "REJECTED"
+
+@dataclass
+class Market:
+    symbol: str
+    base_asset: str
+    quote_asset: str
+    pool_id: str
+    base_decimals: int
+    quote_decimals: int
+    volume: str
+    volume_in_quote: str
+    latest_price: str
+    bid_liquidity: str
+    ask_liquidity: str
+    total_liquidity_in_quote: str
+
+@dataclass
+class Order:
+    symbol: str
+    order_id: str
+    client_order_id: str
+    price: str
+    orig_qty: str
+    executed_qty: str
+    status: OrderStatus
+    order_type: OrderType
+    side: OrderSide
+    time: int
+    update_time: int
+```
+
+---
+
+<CardGroup cols={2}>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/introduction"
+  >
+    Complete API documentation
+  </Card>
+  <Card
+    title="Examples Repository"
+    icon="code"
+    href="/sdks/examples"
+  >
+    Practical Python examples
+  </Card>
+</CardGroup>
+
+<Info>
+The Python SDK provides full async support and comprehensive type hints for building robust GTX DEX applications. All methods are fully documented with examples and error handling patterns.
+</Info>

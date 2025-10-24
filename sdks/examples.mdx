@@ -1,0 +1,1140 @@
+---
+title: 'SDK Examples'
+description: 'Practical code examples and tutorials for building with GTX DEX SDKs'
+---
+
+# SDK Examples & Tutorials
+
+Comprehensive examples demonstrating real-world usage of GTX DEX SDKs for building trading applications, bots, and analytics tools.
+
+## Getting Started Examples
+
+### Basic Trading Bot (TypeScript)
+
+A simple bot that places limit orders and monitors fills:
+
+<CodeGroup>
+
+```typescript Basic Bot
+import { GTXClient, ChainId, OrderSide, OrderType } from '@gtx/sdk';
+
+class BasicTradingBot {
+  private client: GTXClient;
+  private symbol: string;
+  private isRunning: boolean = false;
+
+  constructor(privateKey: string, symbol: string = 'ETHUSDC') {
+    this.client = new GTXClient({
+      chainId: ChainId.RISE_TESTNET,
+      rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+      privateKey
+    });
+    this.symbol = symbol;
+  }
+
+  async start() {
+    this.isRunning = true;
+    console.log(`🚀 Starting basic trading bot for ${this.symbol}`);
+
+    while (this.isRunning) {
+      try {
+        await this.executeTradingCycle();
+        await this.sleep(30000); // Wait 30 seconds
+      } catch (error) {
+        console.error('Trading cycle error:', error);
+        await this.sleep(10000); // Wait 10 seconds on error
+      }
+    }
+  }
+
+  private async executeTradingCycle() {
+    // Get current market data
+    const ticker = await this.client.getTicker24hr(this.symbol);
+    const currentPrice = parseFloat(ticker.lastPrice);
+    
+    // Simple strategy: buy 1% below, sell 1% above
+    const buyPrice = currentPrice * 0.99;
+    const sellPrice = currentPrice * 1.01;
+    
+    // Check if we have open orders
+    const openOrders = await this.client.getOpenOrders(this.symbol);
+    
+    if (openOrders.length === 0) {
+      // Place new orders if none exist
+      await this.placeBuyOrder(buyPrice);
+      await this.placeSellOrder(sellPrice);
+    } else {
+      console.log(`📊 ${openOrders.length} orders still open, waiting...`);
+    }
+    
+    // Check account balance
+    const account = await this.client.getAccount();
+    console.log('💰 Current balances:');
+    account.balances.forEach(balance => {
+      if (parseFloat(balance.free) > 0) {
+        console.log(`  ${balance.asset}: ${balance.free}`);
+      }
+    });
+  }
+
+  private async placeBuyOrder(price: number) {
+    try {
+      const order = await this.client.placeOrder({
+        symbol: this.symbol,
+        side: OrderSide.BUY,
+        type: OrderType.LIMIT,
+        quantity: '0.1', // 0.1 ETH
+        price: price.toFixed(2)
+      });
+      
+      console.log(`✅ Buy order placed: ${order.orderId} at $${price.toFixed(2)}`);
+    } catch (error) {
+      console.error('❌ Failed to place buy order:', error);
+    }
+  }
+
+  private async placeSellOrder(price: number) {
+    try {
+      const order = await this.client.placeOrder({
+        symbol: this.symbol,
+        side: OrderSide.SELL,
+        type: OrderType.LIMIT,
+        quantity: '0.1', // 0.1 ETH
+        price: price.toFixed(2)
+      });
+      
+      console.log(`✅ Sell order placed: ${order.orderId} at $${price.toFixed(2)}`);
+    } catch (error) {
+      console.error('❌ Failed to place sell order:', error);
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  stop() {
+    this.isRunning = false;
+    console.log('🛑 Bot stopped');
+  }
+}
+
+// Usage
+const bot = new BasicTradingBot(process.env.PRIVATE_KEY!, 'ETHUSDC');
+bot.start().catch(console.error);
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  bot.stop();
+  process.exit(0);
+});
+```
+
+```python Python Version
+import asyncio
+import os
+from gtx import GTXClient, ChainId, OrderSide, OrderType
+
+class BasicTradingBot:
+    def __init__(self, private_key: str, symbol: str = "ETHUSDC"):
+        self.client = GTXClient(
+            chain_id=ChainId.RISE_TESTNET,
+            rpc_url="https://testnet-rpc.riselabs.xyz",
+            private_key=private_key
+        )
+        self.symbol = symbol
+        self.is_running = False
+
+    async def start(self):
+        self.is_running = True
+        print(f"🚀 Starting basic trading bot for {self.symbol}")
+
+        while self.is_running:
+            try:
+                await self.execute_trading_cycle()
+                await asyncio.sleep(30)  # Wait 30 seconds
+            except Exception as error:
+                print(f"Trading cycle error: {error}")
+                await asyncio.sleep(10)  # Wait 10 seconds on error
+
+    async def execute_trading_cycle(self):
+        # Get current market data
+        ticker = await self.client.get_ticker_24hr(self.symbol)
+        current_price = float(ticker.last_price)
+        
+        # Simple strategy: buy 1% below, sell 1% above
+        buy_price = current_price * 0.99
+        sell_price = current_price * 1.01
+        
+        # Check if we have open orders
+        open_orders = await self.client.get_open_orders(self.symbol)
+        
+        if len(open_orders) == 0:
+            # Place new orders if none exist
+            await self.place_buy_order(buy_price)
+            await self.place_sell_order(sell_price)
+        else:
+            print(f"📊 {len(open_orders)} orders still open, waiting...")
+        
+        # Check account balance
+        account = await self.client.get_account()
+        print("💰 Current balances:")
+        for balance in account.balances:
+            if float(balance.free) > 0:
+                print(f"  {balance.asset}: {balance.free}")
+
+    async def place_buy_order(self, price: float):
+        try:
+            order = await self.client.place_order(
+                symbol=self.symbol,
+                side=OrderSide.BUY,
+                order_type=OrderType.LIMIT,
+                quantity="0.1",  # 0.1 ETH
+                price=f"{price:.2f}"
+            )
+            
+            print(f"✅ Buy order placed: {order.order_id} at ${price:.2f}")
+        except Exception as error:
+            print(f"❌ Failed to place buy order: {error}")
+
+    async def place_sell_order(self, price: float):
+        try:
+            order = await self.client.place_order(
+                symbol=self.symbol,
+                side=OrderSide.SELL,
+                order_type=OrderType.LIMIT,
+                quantity="0.1",  # 0.1 ETH
+                price=f"{price:.2f}"
+            )
+            
+            print(f"✅ Sell order placed: {order.order_id} at ${price:.2f}")
+        except Exception as error:
+            print(f"❌ Failed to place sell order: {error}")
+
+    def stop(self):
+        self.is_running = False
+        print("🛑 Bot stopped")
+
+# Usage
+async def main():
+    bot = BasicTradingBot(os.getenv("PRIVATE_KEY"), "ETHUSDC")
+    await bot.start()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</CodeGroup>
+
+## Advanced Trading Strategies
+
+### Grid Trading Bot
+
+Implements a grid trading strategy that places multiple buy and sell orders:
+
+<CodeGroup>
+
+```typescript Grid Trading
+class GridTradingBot {
+  private client: GTXClient;
+  private symbol: string;
+  private gridSize: number;
+  private gridSpacing: number;
+  private orderSize: number;
+  private basePrice: number;
+
+  constructor(config: {
+    client: GTXClient;
+    symbol: string;
+    gridSize: number;
+    gridSpacing: number; // Percentage spacing between orders
+    orderSize: number;
+  }) {
+    this.client = config.client;
+    this.symbol = config.symbol;
+    this.gridSize = config.gridSize;
+    this.gridSpacing = config.gridSpacing;
+    this.orderSize = config.orderSize;
+  }
+
+  async initialize() {
+    // Get current market price as base
+    const ticker = await this.client.getTicker24hr(this.symbol);
+    this.basePrice = parseFloat(ticker.lastPrice);
+    console.log(`📊 Base price set to $${this.basePrice}`);
+  }
+
+  async createGrid() {
+    console.log(`🔧 Creating ${this.gridSize} order grid...`);
+    
+    const orders = [];
+    
+    // Create buy orders below current price
+    for (let i = 1; i <= this.gridSize / 2; i++) {
+      const price = this.basePrice * (1 - (this.gridSpacing * i / 100));
+      orders.push(this.createBuyOrder(price));
+    }
+    
+    // Create sell orders above current price
+    for (let i = 1; i <= this.gridSize / 2; i++) {
+      const price = this.basePrice * (1 + (this.gridSpacing * i / 100));
+      orders.push(this.createSellOrder(price));
+    }
+    
+    // Place all orders
+    const results = await Promise.allSettled(orders);
+    
+    let successful = 0;
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successful++;
+      } else {
+        console.error(`Order ${index} failed:`, result.reason);
+      }
+    });
+    
+    console.log(`✅ Successfully placed ${successful}/${orders.length} orders`);
+  }
+
+  private async createBuyOrder(price: number) {
+    return this.client.placeOrder({
+      symbol: this.symbol,
+      side: OrderSide.BUY,
+      type: OrderType.LIMIT,
+      quantity: this.orderSize.toString(),
+      price: price.toFixed(2)
+    });
+  }
+
+  private async createSellOrder(price: number) {
+    return this.client.placeOrder({
+      symbol: this.symbol,
+      side: OrderSide.SELL,
+      type: OrderType.LIMIT,
+      quantity: this.orderSize.toString(),
+      price: price.toFixed(2)
+    });
+  }
+
+  async monitorAndReplace() {
+    while (true) {
+      try {
+        // Check for filled orders
+        const openOrders = await this.client.getOpenOrders(this.symbol);
+        const targetOrderCount = this.gridSize;
+        
+        if (openOrders.length < targetOrderCount) {
+          console.log(`🔄 ${targetOrderCount - openOrders.length} orders filled, replacing...`);
+          
+          // Cancel all remaining orders and recreate grid
+          await this.client.cancelAllOrders(this.symbol);
+          await this.initialize(); // Update base price
+          await this.createGrid();
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Check every 10 seconds
+      } catch (error) {
+        console.error('Monitor error:', error);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+  }
+}
+
+// Usage
+const gridBot = new GridTradingBot({
+  client: new GTXClient({ /* config */ }),
+  symbol: 'ETHUSDC',
+  gridSize: 10,      // 10 total orders
+  gridSpacing: 0.5,  // 0.5% spacing
+  orderSize: 0.1     // 0.1 ETH per order
+});
+
+await gridBot.initialize();
+await gridBot.createGrid();
+gridBot.monitorAndReplace();
+```
+
+```python Python Grid Bot
+class GridTradingBot:
+    def __init__(self, client, symbol: str, grid_size: int, grid_spacing: float, order_size: float):
+        self.client = client
+        self.symbol = symbol
+        self.grid_size = grid_size
+        self.grid_spacing = grid_spacing  # Percentage
+        self.order_size = order_size
+        self.base_price = 0
+    
+    async def initialize(self):
+        # Get current market price as base
+        ticker = await self.client.get_ticker_24hr(self.symbol)
+        self.base_price = float(ticker.last_price)
+        print(f"📊 Base price set to ${self.base_price}")
+    
+    async def create_grid(self):
+        print(f"🔧 Creating {self.grid_size} order grid...")
+        
+        tasks = []
+        
+        # Create buy orders below current price
+        for i in range(1, self.grid_size // 2 + 1):
+            price = self.base_price * (1 - (self.grid_spacing * i / 100))
+            tasks.append(self.create_buy_order(price))
+        
+        # Create sell orders above current price
+        for i in range(1, self.grid_size // 2 + 1):
+            price = self.base_price * (1 + (self.grid_spacing * i / 100))
+            tasks.append(self.create_sell_order(price))
+        
+        # Place all orders
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        successful = sum(1 for result in results if not isinstance(result, Exception))
+        print(f"✅ Successfully placed {successful}/{len(tasks)} orders")
+    
+    async def create_buy_order(self, price: float):
+        return await self.client.place_order(
+            symbol=self.symbol,
+            side=OrderSide.BUY,
+            order_type=OrderType.LIMIT,
+            quantity=str(self.order_size),
+            price=f"{price:.2f}"
+        )
+    
+    async def create_sell_order(self, price: float):
+        return await self.client.place_order(
+            symbol=self.symbol,
+            side=OrderSide.SELL,
+            order_type=OrderType.LIMIT,
+            quantity=str(self.order_size),
+            price=f"{price:.2f}"
+        )
+```
+
+</CodeGroup>
+
+## Data Analysis Examples
+
+### Market Analysis Dashboard
+
+<CodeGroup>
+
+```python Market Analytics
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+class MarketAnalytics:
+    def __init__(self, client):
+        self.client = client
+    
+    async def generate_market_report(self, symbols: list, days: int = 7):
+        """Generate comprehensive market analysis report"""
+        report_data = {}
+        
+        for symbol in symbols:
+            print(f"📊 Analyzing {symbol}...")
+            
+            # Get historical data
+            end_time = datetime.now()
+            start_time = end_time - timedelta(days=days)
+            
+            klines = await self.client.get_klines(
+                symbol=symbol,
+                interval="1h",
+                start_time=start_time,
+                limit=days * 24
+            )
+            
+            # Convert to DataFrame
+            df = pd.DataFrame([{
+                'timestamp': datetime.fromtimestamp(k.open_time / 1000),
+                'open': float(k.open),
+                'high': float(k.high),
+                'low': float(k.low),
+                'close': float(k.close),
+                'volume': float(k.volume)
+            } for k in klines])
+            
+            # Calculate metrics
+            analysis = await self.calculate_metrics(df, symbol)
+            report_data[symbol] = analysis
+        
+        # Generate visualization
+        self.create_market_dashboard(report_data)
+        return report_data
+    
+    async def calculate_metrics(self, df: pd.DataFrame, symbol: str):
+        """Calculate comprehensive market metrics"""
+        
+        # Price metrics
+        current_price = df['close'].iloc[-1]
+        price_change_24h = ((current_price - df['close'].iloc[-24]) / df['close'].iloc[-24]) * 100
+        
+        # Volatility
+        returns = df['close'].pct_change().dropna()
+        volatility = returns.std() * np.sqrt(24) * 100  # Annualized hourly volatility
+        
+        # Volume metrics
+        avg_volume = df['volume'].mean()
+        volume_trend = df['volume'].iloc[-24:].mean() / df['volume'].iloc[-48:-24].mean()
+        
+        # Technical indicators
+        df['sma_20'] = df['close'].rolling(20).mean()
+        df['sma_50'] = df['close'].rolling(50).mean()
+        
+        # RSI
+        delta = df['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        current_rsi = rsi.iloc[-1]
+        
+        # Support and Resistance
+        support = df['low'].rolling(48).min().iloc[-1]
+        resistance = df['high'].rolling(48).max().iloc[-1]
+        
+        # Yield analysis
+        yield_stats = await self.client.get_yield_stats()
+        
+        return {
+            'symbol': symbol,
+            'current_price': current_price,
+            'price_change_24h': price_change_24h,
+            'volatility': volatility,
+            'avg_volume': avg_volume,
+            'volume_trend': volume_trend,
+            'rsi': current_rsi,
+            'support': support,
+            'resistance': resistance,
+            'sma_20': df['sma_20'].iloc[-1],
+            'sma_50': df['sma_50'].iloc[-1],
+            'current_apy': yield_stats.current_apy if yield_stats else 0,
+            'dataframe': df
+        }
+    
+    def create_market_dashboard(self, report_data):
+        """Create comprehensive market dashboard"""
+        symbols = list(report_data.keys())
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig.suptitle('GTX DEX Market Analysis Dashboard', fontsize=16)
+        
+        # Price comparison
+        ax1 = axes[0, 0]
+        price_changes = [report_data[s]['price_change_24h'] for s in symbols]
+        colors = ['green' if x > 0 else 'red' for x in price_changes]
+        ax1.bar(symbols, price_changes, color=colors, alpha=0.7)
+        ax1.set_title('24h Price Changes (%)')
+        ax1.set_ylabel('Change %')
+        
+        # Volatility comparison
+        ax2 = axes[0, 1]
+        volatilities = [report_data[s]['volatility'] for s in symbols]
+        ax2.bar(symbols, volatilities, color='orange', alpha=0.7)
+        ax2.set_title('Volatility (Annualized %)')
+        ax2.set_ylabel('Volatility %')
+        
+        # RSI comparison
+        ax3 = axes[1, 0]
+        rsi_values = [report_data[s]['rsi'] for s in symbols]
+        colors = ['red' if x > 70 else 'green' if x < 30 else 'blue' for x in rsi_values]
+        ax3.bar(symbols, rsi_values, color=colors, alpha=0.7)
+        ax3.axhline(y=70, color='red', linestyle='--', alpha=0.5)
+        ax3.axhline(y=30, color='green', linestyle='--', alpha=0.5)
+        ax3.set_title('RSI Levels')
+        ax3.set_ylabel('RSI')
+        ax3.set_ylim(0, 100)
+        
+        # Yield comparison
+        ax4 = axes[1, 1]
+        yields = [report_data[s]['current_apy'] for s in symbols]
+        ax4.bar(symbols, yields, color='purple', alpha=0.7)
+        ax4.set_title('Current Yield APY (%)')
+        ax4.set_ylabel('APY %')
+        
+        plt.tight_layout()
+        plt.show()
+
+# Usage
+analytics = MarketAnalytics(client)
+report = await analytics.generate_market_report(['ETHUSDC', 'BTCUSDC', 'LINKUSDC'])
+```
+
+```javascript Web Dashboard
+// React component for real-time market dashboard
+import React, { useState, useEffect } from 'react';
+import { GTXClient } from '@gtx/sdk';
+
+const MarketDashboard = () => {
+  const [marketData, setMarketData] = useState({});
+  const [client] = useState(() => new GTXClient({
+    chainId: ChainId.RISE_TESTNET,
+    rpcUrl: 'https://testnet-rpc.riselabs.xyz'
+  }));
+
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        const symbols = ['ETHUSDC', 'BTCUSDC', 'LINKUSDC'];
+        const data = {};
+        
+        for (const symbol of symbols) {
+          const ticker = await client.getTicker24hr(symbol);
+          const depth = await client.getOrderBookDepth(symbol, 5);
+          
+          data[symbol] = {
+            price: ticker.lastPrice,
+            change24h: ticker.priceChangePercent,
+            volume: ticker.volume,
+            spread: ((parseFloat(depth.asks[0][0]) - parseFloat(depth.bids[0][0])) / parseFloat(depth.bids[0][0]) * 100).toFixed(3)
+          };
+        }
+        
+        setMarketData(data);
+      } catch (error) {
+        console.error('Failed to fetch market data:', error);
+      }
+    };
+
+    fetchMarketData();
+    const interval = setInterval(fetchMarketData, 5000); // Update every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [client]);
+
+  return (
+    <div className="market-dashboard">
+      <h2>GTX DEX Market Overview</h2>
+      <div className="market-grid">
+        {Object.entries(marketData).map(([symbol, data]) => (
+          <div key={symbol} className="market-card">
+            <h3>{symbol}</h3>
+            <div className="price">${parseFloat(data.price).toFixed(2)}</div>
+            <div className={`change ${parseFloat(data.change24h) >= 0 ? 'positive' : 'negative'}`}>
+              {parseFloat(data.change24h) >= 0 ? '+' : ''}{data.change24h}%
+            </div>
+            <div className="volume">Vol: {parseFloat(data.volume).toFixed(2)}</div>
+            <div className="spread">Spread: {data.spread}%</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default MarketDashboard;
+```
+
+</CodeGroup>
+
+## Yield Optimization Examples
+
+### Yield Farming Strategy
+
+<CodeGroup>
+
+```typescript Yield Optimizer
+class YieldOptimizer {
+  private client: GTXClient;
+  private positions: Map<string, Position> = new Map();
+
+  constructor(client: GTXClient) {
+    this.client = client;
+  }
+
+  async optimizeYieldStrategy() {
+    console.log('🔍 Analyzing yield opportunities...');
+    
+    // Get current yield rates across different strategies
+    const yieldData = await this.analyzeYieldOpportunities();
+    
+    // Calculate optimal allocation
+    const allocation = this.calculateOptimalAllocation(yieldData);
+    
+    // Execute rebalancing
+    await this.executeRebalancing(allocation);
+    
+    console.log('✅ Yield optimization complete');
+  }
+
+  private async analyzeYieldOpportunities() {
+    const opportunities = [];
+    
+    // Analyze market making yields
+    const markets = await this.client.getMarkets();
+    
+    for (const market of markets) {
+      const depth = await this.client.getOrderBookDepth(market.symbol, 10);
+      const spread = this.calculateSpread(depth);
+      
+      // Estimate market making yield
+      const estimatedYield = this.estimateMarketMakingYield(spread, market.volume);
+      
+      opportunities.push({
+        symbol: market.symbol,
+        strategy: 'market_making',
+        estimatedAPY: estimatedYield,
+        risk: this.assessRisk(market),
+        liquidity: parseFloat(market.totalLiquidityInQuote)
+      });
+    }
+    
+    // Analyze position holding yields
+    const yieldStats = await this.client.getYieldStats();
+    opportunities.push({
+      symbol: 'HOLD',
+      strategy: 'position_holding',
+      estimatedAPY: yieldStats.currentAPY,
+      risk: 'low',
+      liquidity: Infinity
+    });
+    
+    return opportunities;
+  }
+
+  private calculateOptimalAllocation(opportunities: any[]) {
+    // Simple risk-adjusted allocation
+    const totalScore = opportunities.reduce((sum, opp) => {
+      const riskMultiplier = opp.risk === 'low' ? 1 : opp.risk === 'medium' ? 0.7 : 0.4;
+      return sum + (opp.estimatedAPY * riskMultiplier);
+    }, 0);
+    
+    return opportunities.map(opp => ({
+      ...opp,
+      allocation: (opp.estimatedAPY * (opp.risk === 'low' ? 1 : opp.risk === 'medium' ? 0.7 : 0.4)) / totalScore
+    }));
+  }
+
+  private async executeRebalancing(allocation: any[]) {
+    const account = await this.client.getAccount();
+    const totalValue = this.calculateTotalPortfolioValue(account);
+    
+    for (const item of allocation) {
+      const targetValue = totalValue * item.allocation;
+      
+      if (item.strategy === 'market_making') {
+        await this.executeMarketMakingStrategy(item.symbol, targetValue);
+      } else if (item.strategy === 'position_holding') {
+        await this.executeHoldingStrategy(targetValue);
+      }
+    }
+  }
+
+  private async executeMarketMakingStrategy(symbol: string, targetValue: number) {
+    // Cancel existing orders for this symbol
+    await this.client.cancelAllOrders(symbol);
+    
+    // Place new market making orders
+    const ticker = await this.client.getTicker24hr(symbol);
+    const midPrice = parseFloat(ticker.lastPrice);
+    const orderValue = targetValue / 4; // Split into 4 orders (2 buy, 2 sell)
+    
+    const orders = [
+      // Buy orders
+      {
+        symbol,
+        side: OrderSide.BUY,
+        type: OrderType.LIMIT,
+        quantity: (orderValue / (midPrice * 0.999)).toFixed(6),
+        price: (midPrice * 0.999).toFixed(2) // 0.1% below mid
+      },
+      {
+        symbol,
+        side: OrderSide.BUY,
+        type: OrderType.LIMIT,
+        quantity: (orderValue / (midPrice * 0.995)).toFixed(6),
+        price: (midPrice * 0.995).toFixed(2) // 0.5% below mid
+      },
+      // Sell orders
+      {
+        symbol,
+        side: OrderSide.SELL,
+        type: OrderType.LIMIT,
+        quantity: (orderValue / (midPrice * 1.001)).toFixed(6),
+        price: (midPrice * 1.001).toFixed(2) // 0.1% above mid
+      },
+      {
+        symbol,
+        side: OrderSide.SELL,
+        type: OrderType.LIMIT,
+        quantity: (orderValue / (midPrice * 1.005)).toFixed(6),
+        price: (midPrice * 1.005).toFixed(2) // 0.5% above mid
+      }
+    ];
+
+    for (const order of orders) {
+      try {
+        await this.client.placeOrder(order);
+        console.log(`📝 Placed ${order.side} order for ${symbol} at $${order.price}`);
+      } catch (error) {
+        console.error(`Failed to place order:`, error);
+      }
+    }
+  }
+
+  private calculateSpread(depth: any) {
+    const bestBid = parseFloat(depth.bids[0][0]);
+    const bestAsk = parseFloat(depth.asks[0][0]);
+    return ((bestAsk - bestBid) / bestBid) * 100;
+  }
+
+  private estimateMarketMakingYield(spread: number, volume: string) {
+    // Simplified yield estimation based on spread and volume
+    const dailyVolume = parseFloat(volume);
+    const estimatedCapture = Math.min(spread * 0.1, 2); // Capture up to 10% of spread, max 2%
+    return estimatedCapture * 365; // Annualized
+  }
+
+  private assessRisk(market: any) {
+    const volume = parseFloat(market.volume);
+    const liquidity = parseFloat(market.totalLiquidityInQuote);
+    
+    if (volume > 100000 && liquidity > 500000) return 'low';
+    if (volume > 50000 && liquidity > 200000) return 'medium';
+    return 'high';
+  }
+}
+
+// Usage
+const optimizer = new YieldOptimizer(client);
+setInterval(() => {
+  optimizer.optimizeYieldStrategy().catch(console.error);
+}, 3600000); // Optimize every hour
+```
+
+```python Python Yield Strategy
+import asyncio
+from typing import Dict, List
+from dataclasses import dataclass
+
+@dataclass
+class YieldOpportunity:
+    symbol: str
+    strategy: str
+    estimated_apy: float
+    risk: str
+    liquidity: float
+    allocation: float = 0
+
+class YieldOptimizer:
+    def __init__(self, client):
+        self.client = client
+    
+    async def optimize_yield_strategy(self):
+        print("🔍 Analyzing yield opportunities...")
+        
+        # Get current yield rates across different strategies
+        opportunities = await self.analyze_yield_opportunities()
+        
+        # Calculate optimal allocation
+        allocation = self.calculate_optimal_allocation(opportunities)
+        
+        # Execute rebalancing
+        await self.execute_rebalancing(allocation)
+        
+        print("✅ Yield optimization complete")
+    
+    async def analyze_yield_opportunities(self) -> List[YieldOpportunity]:
+        opportunities = []
+        
+        # Analyze market making yields
+        markets = await self.client.get_markets()
+        
+        for market in markets:
+            depth = await self.client.get_order_book_depth(market.symbol, 10)
+            spread = self.calculate_spread(depth)
+            
+            # Estimate market making yield
+            estimated_yield = self.estimate_market_making_yield(spread, market.volume)
+            
+            opportunities.append(YieldOpportunity(
+                symbol=market.symbol,
+                strategy="market_making",
+                estimated_apy=estimated_yield,
+                risk=self.assess_risk(market),
+                liquidity=float(market.total_liquidity_in_quote)
+            ))
+        
+        # Analyze position holding yields
+        yield_stats = await self.client.get_yield_stats()
+        opportunities.append(YieldOpportunity(
+            symbol="HOLD",
+            strategy="position_holding",
+            estimated_apy=yield_stats.current_apy,
+            risk="low",
+            liquidity=float('inf')
+        ))
+        
+        return opportunities
+    
+    def calculate_optimal_allocation(self, opportunities: List[YieldOpportunity]) -> List[YieldOpportunity]:
+        # Risk-adjusted allocation
+        risk_multipliers = {"low": 1.0, "medium": 0.7, "high": 0.4}
+        
+        total_score = sum(
+            opp.estimated_apy * risk_multipliers[opp.risk] 
+            for opp in opportunities
+        )
+        
+        for opp in opportunities:
+            risk_mult = risk_multipliers[opp.risk]
+            opp.allocation = (opp.estimated_apy * risk_mult) / total_score
+        
+        return opportunities
+    
+    async def execute_rebalancing(self, allocation: List[YieldOpportunity]):
+        account = await self.client.get_account()
+        total_value = self.calculate_total_portfolio_value(account)
+        
+        for item in allocation:
+            target_value = total_value * item.allocation
+            
+            if item.strategy == "market_making":
+                await self.execute_market_making_strategy(item.symbol, target_value)
+            elif item.strategy == "position_holding":
+                await self.execute_holding_strategy(target_value)
+
+# Usage
+optimizer = YieldOptimizer(client)
+
+async def run_optimizer():
+    while True:
+        try:
+            await optimizer.optimize_yield_strategy()
+            await asyncio.sleep(3600)  # Optimize every hour
+        except Exception as e:
+            print(f"Optimization error: {e}")
+            await asyncio.sleep(300)  # Wait 5 minutes on error
+
+asyncio.create_task(run_optimizer())
+```
+
+</CodeGroup>
+
+## Integration Examples
+
+### Discord Trading Bot
+
+```typescript
+import { Client, GatewayIntentBits, SlashCommandBuilder } from 'discord.js';
+import { GTXClient, ChainId } from '@gtx/sdk';
+
+class DiscordTradingBot {
+  private discord: Client;
+  private gtx: GTXClient;
+
+  constructor(discordToken: string, privateKey: string) {
+    this.discord = new Client({ 
+      intents: [GatewayIntentBits.Guilds] 
+    });
+    
+    this.gtx = new GTXClient({
+      chainId: ChainId.RISE_TESTNET,
+      rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+      privateKey
+    });
+
+    this.setupCommands();
+  }
+
+  private setupCommands() {
+    this.discord.on('ready', () => {
+      console.log(`🤖 Discord bot logged in as ${this.discord.user?.tag}`);
+    });
+
+    this.discord.on('interactionCreate', async interaction => {
+      if (!interaction.isChatInputCommand()) return;
+
+      const { commandName } = interaction;
+
+      try {
+        switch (commandName) {
+          case 'price':
+            await this.handlePriceCommand(interaction);
+            break;
+          case 'balance':
+            await this.handleBalanceCommand(interaction);
+            break;
+          case 'orders':
+            await this.handleOrdersCommand(interaction);
+            break;
+          case 'buy':
+            await this.handleBuyCommand(interaction);
+            break;
+          case 'sell':
+            await this.handleSellCommand(interaction);
+            break;
+        }
+      } catch (error) {
+        await interaction.reply(`❌ Error: ${error.message}`);
+      }
+    });
+  }
+
+  private async handlePriceCommand(interaction: any) {
+    const symbol = interaction.options.getString('symbol') || 'ETHUSDC';
+    
+    const ticker = await this.gtx.getTicker24hr(symbol);
+    const depth = await this.gtx.getOrderBookDepth(symbol, 1);
+    
+    const embed = {
+      title: `💰 ${symbol} Price`,
+      fields: [
+        { name: 'Last Price', value: `$${ticker.lastPrice}`, inline: true },
+        { name: '24h Change', value: `${ticker.priceChangePercent}%`, inline: true },
+        { name: '24h Volume', value: `$${parseFloat(ticker.volume).toFixed(2)}`, inline: true },
+        { name: 'Best Bid', value: `$${depth.bids[0][0]}`, inline: true },
+        { name: 'Best Ask', value: `$${depth.asks[0][0]}`, inline: true },
+        { name: 'Spread', value: `${(((parseFloat(depth.asks[0][0]) - parseFloat(depth.bids[0][0])) / parseFloat(depth.bids[0][0])) * 100).toFixed(3)}%`, inline: true }
+      ],
+      color: parseFloat(ticker.priceChangePercent) >= 0 ? 0x00FF00 : 0xFF0000
+    };
+
+    await interaction.reply({ embeds: [embed] });
+  }
+
+  private async handleBalanceCommand(interaction: any) {
+    const account = await this.gtx.getAccount();
+    
+    const balanceFields = account.balances
+      .filter(b => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0)
+      .map(balance => ({
+        name: balance.asset,
+        value: `Free: ${balance.free}\nLocked: ${balance.locked}`,
+        inline: true
+      }));
+
+    const embed = {
+      title: '💼 Account Balances',
+      fields: balanceFields,
+      color: 0x0099FF
+    };
+
+    await interaction.reply({ embeds: [embed] });
+  }
+
+  private async handleOrdersCommand(interaction: any) {
+    const symbol = interaction.options.getString('symbol');
+    const orders = await this.gtx.getOpenOrders(symbol || undefined);
+    
+    if (orders.length === 0) {
+      await interaction.reply('📋 No open orders');
+      return;
+    }
+
+    const orderFields = orders.slice(0, 10).map(order => ({
+      name: `${order.side} ${order.symbol}`,
+      value: `${order.origQty} @ $${order.price}\nStatus: ${order.status}`,
+      inline: true
+    }));
+
+    const embed = {
+      title: `📋 Open Orders (${orders.length})`,
+      fields: orderFields,
+      color: 0xFFFF00
+    };
+
+    await interaction.reply({ embeds: [embed] });
+  }
+
+  private async handleBuyCommand(interaction: any) {
+    const symbol = interaction.options.getString('symbol');
+    const quantity = interaction.options.getString('quantity');
+    const price = interaction.options.getString('price');
+
+    const order = await this.gtx.placeOrder({
+      symbol,
+      side: OrderSide.BUY,
+      type: price ? OrderType.LIMIT : OrderType.MARKET,
+      quantity,
+      price
+    });
+
+    await interaction.reply(`✅ Buy order placed: ${order.orderId}`);
+  }
+
+  async start(token: string) {
+    await this.discord.login(token);
+  }
+}
+
+// Register slash commands
+const commands = [
+  new SlashCommandBuilder()
+    .setName('price')
+    .setDescription('Get current price for a trading pair')
+    .addStringOption(option =>
+      option.setName('symbol')
+        .setDescription('Trading pair symbol')
+        .setRequired(false)),
+  
+  new SlashCommandBuilder()
+    .setName('balance')
+    .setDescription('Get account balances'),
+  
+  new SlashCommandBuilder()
+    .setName('orders')
+    .setDescription('Get open orders')
+    .addStringOption(option =>
+      option.setName('symbol')
+        .setDescription('Filter by trading pair')
+        .setRequired(false)),
+  
+  new SlashCommandBuilder()
+    .setName('buy')
+    .setDescription('Place a buy order')
+    .addStringOption(option =>
+      option.setName('symbol')
+        .setDescription('Trading pair')
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('quantity')
+        .setDescription('Amount to buy')
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('price')
+        .setDescription('Limit price (leave empty for market order)')
+        .setRequired(false))
+];
+
+// Usage
+const bot = new DiscordTradingBot(
+  process.env.DISCORD_TOKEN!,
+  process.env.PRIVATE_KEY!
+);
+
+bot.start(process.env.DISCORD_TOKEN!);
+```
+
+---
+
+<CardGroup cols={3}>
+  <Card
+    title="TypeScript SDK"
+    icon="code"
+    href="/sdks/typescript"
+  >
+    Full TypeScript SDK documentation
+  </Card>
+  <Card
+    title="Python SDK"
+    icon="python"
+    href="/sdks/python"
+  >
+    Complete Python SDK guide
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/introduction"
+  >
+    REST API documentation
+  </Card>
+</CardGroup>
+
+<Info>
+These examples demonstrate real-world usage patterns for building applications with GTX DEX. All examples include error handling, yield optimization, and best practices for production use.
+</Info>

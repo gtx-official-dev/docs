@@ -1,0 +1,607 @@
+---
+title: 'TypeScript SDK'
+description: 'Official TypeScript/JavaScript SDK for GTX DEX integration and trading automation'
+---
+
+# GTX DEX TypeScript SDK
+
+The official TypeScript SDK provides a comprehensive interface for integrating with GTX DEX, enabling developers to build trading applications, bots, and analytics tools with full type safety and modern JavaScript features.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @gtx/sdk
+```
+
+```bash yarn
+yarn add @gtx/sdk
+```
+
+```bash pnpm
+pnpm add @gtx/sdk
+```
+
+</CodeGroup>
+
+## Quick Start
+
+<CodeGroup>
+
+```typescript Basic Setup - RiseLabs
+import { GTXClient, ChainId } from '@gtx/sdk';
+
+// Initialize the client for RiseLabs Testnet
+const client = new GTXClient({
+  chainId: ChainId.RISE_TESTNET,
+  rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+  privateKey: process.env.PRIVATE_KEY // Optional for read-only operations
+});
+
+// Get market data
+const markets = await client.getMarkets();
+console.log('Available markets:', markets);
+
+// Get current price
+const price = await client.getPrice('ETHUSDC');
+console.log('ETH price:', price);
+```
+
+```typescript Basic Setup - Base Sepolia
+import { GTXClient, ChainId } from '@gtx/sdk';
+
+// Initialize the client for Base Sepolia
+const client = new GTXClient({
+  chainId: ChainId.BASE_SEPOLIA,
+  rpcUrl: 'https://sepolia.base.org',
+  privateKey: process.env.PRIVATE_KEY // Optional for read-only operations
+});
+
+// Get market data
+const markets = await client.getMarkets();
+console.log('Available markets:', markets);
+
+// Get current price
+const price = await client.getPrice('ETHUSDC');
+console.log('ETH price:', price);
+```
+
+```typescript With Web3 Provider
+import { GTXClient } from '@gtx/sdk';
+import { ethers } from 'ethers';
+
+// Use existing provider/signer
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.riselabs.xyz');
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+const client = new GTXClient({
+  signer,
+  chainId: ChainId.RISE_TESTNET
+});
+```
+
+</CodeGroup>
+
+## Core Features
+
+### Market Data
+
+<AccordionGroup>
+  <Accordion title="Get All Markets">
+    ```typescript
+    // Fetch all available trading pairs
+    const markets = await client.getMarkets();
+    
+    markets.forEach(market => {
+      console.log(`${market.symbol}: $${market.latestPrice}`);
+      console.log(`24h Volume: $${market.volumeInQuote}`);
+      console.log(`Liquidity: $${market.totalLiquidityInQuote}`);
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Get Market Depth">
+    ```typescript
+    // Get order book depth
+    const depth = await client.getOrderBookDepth('ETHUSDC', 10);
+    
+    console.log('Best Bid:', depth.bids[0]); // [price, quantity]
+    console.log('Best Ask:', depth.asks[0]); // [price, quantity]
+    
+    // Calculate spread
+    const spread = parseFloat(depth.asks[0][0]) - parseFloat(depth.bids[0][0]);
+    console.log('Spread:', spread);
+    ```
+  </Accordion>
+  
+  <Accordion title="Get Trade History">
+    ```typescript
+    // Recent trades for a symbol
+    const trades = await client.getTrades('ETHUSDC', { limit: 50 });
+    
+    trades.forEach(trade => {
+      console.log(`${trade.side} ${trade.qty} at $${trade.price}`);
+    });
+    
+    // User-specific trades
+    const userTrades = await client.getUserTrades('ETHUSDC', userAddress);
+    ```
+  </Accordion>
+  
+  <Accordion title="Get Candlestick Data">
+    ```typescript
+    // OHLCV data for charting
+    const candles = await client.getKlines('ETHUSDC', '1h', {
+      startTime: Date.now() - 24 * 60 * 60 * 1000, // 24 hours ago
+      limit: 100
+    });
+    
+    candles.forEach(candle => {
+      console.log(`Open: ${candle.open}, High: ${candle.high}, Low: ${candle.low}, Close: ${candle.close}`);
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Trading Operations
+
+#### Place Orders
+
+<CodeGroup>
+
+```typescript Limit Orders
+// Place a limit buy order
+const buyOrder = await client.placeOrder({
+  symbol: 'ETHUSDC',
+  side: 'BUY',
+  type: 'LIMIT',
+  quantity: '1.5',
+  price: '2400.00'
+});
+
+console.log('Order ID:', buyOrder.orderId);
+
+// Place a limit sell order  
+const sellOrder = await client.placeOrder({
+  symbol: 'ETHUSDC',
+  side: 'SELL', 
+  type: 'LIMIT',
+  quantity: '1.0',
+  price: '2600.00'
+});
+```
+
+```typescript Market Orders
+// Place a market buy order
+const marketBuy = await client.placeOrder({
+  symbol: 'ETHUSDC',
+  side: 'BUY',
+  type: 'MARKET',
+  quantity: '0.5'
+});
+
+// Place a market sell order
+const marketSell = await client.placeOrder({
+  symbol: 'ETHUSDC', 
+  side: 'SELL',
+  type: 'MARKET',
+  quantity: '0.3'
+});
+```
+
+</CodeGroup>
+
+#### Order Management
+
+```typescript
+// Get user's open orders
+const openOrders = await client.getOpenOrders('ETHUSDC');
+console.log(`You have ${openOrders.length} open orders`);
+
+// Get all order history
+const allOrders = await client.getAllOrders({ symbol: 'ETHUSDC', limit: 100 });
+
+// Cancel an order
+await client.cancelOrder(orderId);
+
+// Cancel all orders for a symbol
+await client.cancelAllOrders('ETHUSDC');
+
+// Get specific order details
+const order = await client.getOrder(orderId);
+console.log('Order status:', order.status);
+```
+
+### Account Management
+
+```typescript
+// Get account information
+const account = await client.getAccount();
+console.log('Trading permissions:', account.permissions);
+console.log('Fee rates:', { maker: account.makerCommission, taker: account.takerCommission });
+
+// Check balances
+account.balances.forEach(balance => {
+  console.log(`${balance.asset}: ${balance.free} available, ${balance.locked} locked`);
+});
+
+// Get cross-chain deposit history
+const deposits = await client.getCrossChainDeposits({ limit: 50 });
+deposits.items.forEach(deposit => {
+  console.log(`${deposit.amount} from chain ${deposit.sourceChainId} - Status: ${deposit.status}`);
+});
+```
+
+## Advanced Features
+
+### Real-time Data Streams
+
+```typescript
+// WebSocket client for real-time updates
+import { GTXWebSocketClient } from '@gtx/sdk';
+
+const wsClient = new GTXWebSocketClient({
+  url: 'wss://ws.gtxdex.xyz'
+});
+
+// Subscribe to price updates
+wsClient.subscribeTicker('ETHUSDC', (ticker) => {
+  console.log('Price update:', ticker.lastPrice);
+  console.log('24h change:', ticker.priceChangePercent);
+});
+
+// Subscribe to trade stream
+wsClient.subscribeTrades('ETHUSDC', (trade) => {
+  console.log('New trade:', trade.price, trade.qty);
+});
+
+// Subscribe to order book updates
+wsClient.subscribeOrderBook('ETHUSDC', (depth) => {
+  console.log('Order book updated');
+  console.log('Best bid:', depth.bids[0]);
+  console.log('Best ask:', depth.asks[0]);
+});
+
+// Subscribe to user order updates
+wsClient.subscribeUserOrders(userAddress, (order) => {
+  console.log('Order update:', order.status);
+});
+```
+
+### Yield Tracking
+
+```typescript
+// Track yield generation
+const yieldStats = await client.getYieldStats();
+console.log('Current APY:', yieldStats.currentAPY);
+console.log('Total earned this month:', yieldStats.monthlyEarnings);
+console.log('Pending GTX rewards:', yieldStats.pendingGTX);
+
+// Calculate projected yields
+const projection = await client.calculateYieldProjection({
+  positionSize: 10000,
+  timeFrame: 30, // days
+  strategy: 'market_making'
+});
+
+console.log('Projected monthly yield:', projection.monthlyYield);
+console.log('Effective APY:', projection.effectiveAPY);
+```
+
+### Trading Strategies
+
+#### Market Making Bot
+
+```typescript
+class MarketMakingBot {
+  private client: GTXClient;
+  private symbol: string;
+  private spread: number;
+  private orderSize: number;
+  
+  constructor(client: GTXClient, symbol: string, spread: number, orderSize: number) {
+    this.client = client;
+    this.symbol = symbol;
+    this.spread = spread;
+    this.orderSize = orderSize;
+  }
+  
+  async start() {
+    // Get initial market data
+    const ticker = await this.client.getTicker24hr(this.symbol);
+    const midPrice = (parseFloat(ticker.bidPrice) + parseFloat(ticker.askPrice)) / 2;
+    
+    // Place initial orders
+    await this.placeOrders(midPrice);
+    
+    // Subscribe to price updates
+    const wsClient = new GTXWebSocketClient();
+    wsClient.subscribeTicker(this.symbol, (update) => {
+      this.handlePriceUpdate(update);
+    });
+  }
+  
+  private async placeOrders(midPrice: number) {
+    const buyPrice = midPrice * (1 - this.spread / 2);
+    const sellPrice = midPrice * (1 + this.spread / 2);
+    
+    try {
+      // Place buy order
+      await this.client.placeOrder({
+        symbol: this.symbol,
+        side: 'BUY',
+        type: 'LIMIT',
+        quantity: this.orderSize.toString(),
+        price: buyPrice.toFixed(2)
+      });
+      
+      // Place sell order
+      await this.client.placeOrder({
+        symbol: this.symbol,
+        side: 'SELL', 
+        type: 'LIMIT',
+        quantity: this.orderSize.toString(),
+        price: sellPrice.toFixed(2)
+      });
+      
+      console.log(`Placed orders at ${buyPrice} / ${sellPrice}`);
+    } catch (error) {
+      console.error('Failed to place orders:', error);
+    }
+  }
+  
+  private async handlePriceUpdate(ticker: any) {
+    const newMidPrice = (parseFloat(ticker.bidPrice) + parseFloat(ticker.askPrice)) / 2;
+    
+    // Cancel existing orders and place new ones
+    await this.client.cancelAllOrders(this.symbol);
+    await this.placeOrders(newMidPrice);
+  }
+}
+
+// Usage
+const bot = new MarketMakingBot(client, 'ETHUSDC', 0.002, 1.0); // 0.2% spread, 1.0 ETH size
+await bot.start();
+```
+
+#### Arbitrage Monitor
+
+```typescript
+class ArbitrageMonitor {
+  private client: GTXClient;
+  private symbols: string[];
+  private threshold: number;
+  
+  constructor(client: GTXClient, symbols: string[], threshold: number) {
+    this.client = client;
+    this.symbols = symbols;
+    this.threshold = threshold;
+  }
+  
+  async start() {
+    setInterval(() => this.checkArbitrageOpportunities(), 5000);
+  }
+  
+  private async checkArbitrageOpportunities() {
+    for (const symbol of this.symbols) {
+      try {
+        const depth = await this.client.getOrderBookDepth(symbol, 5);
+        const bestBid = parseFloat(depth.bids[0][0]);
+        const bestAsk = parseFloat(depth.asks[0][0]);
+        
+        const spread = ((bestAsk - bestBid) / bestBid) * 100;
+        
+        if (spread > this.threshold) {
+          console.log(`Arbitrage opportunity in ${symbol}: ${spread.toFixed(3)}% spread`);
+          console.log(`Best bid: ${bestBid}, Best ask: ${bestAsk}`);
+          
+          // Execute arbitrage logic here
+          await this.executeArbitrage(symbol, bestBid, bestAsk);
+        }
+      } catch (error) {
+        console.error(`Error checking ${symbol}:`, error);
+      }
+    }
+  }
+  
+  private async executeArbitrage(symbol: string, bid: number, ask: number) {
+    // Implement arbitrage execution logic
+    console.log(`Executing arbitrage for ${symbol}...`);
+  }
+}
+```
+
+## Error Handling
+
+```typescript
+import { GTXError, GTXErrorCode } from '@gtx/sdk';
+
+try {
+  await client.placeOrder({
+    symbol: 'ETHUSDC',
+    side: 'BUY',
+    type: 'LIMIT', 
+    quantity: '1.0',
+    price: '2500.00'
+  });
+} catch (error) {
+  if (error instanceof GTXError) {
+    switch (error.code) {
+      case GTXErrorCode.INSUFFICIENT_BALANCE:
+        console.error('Insufficient balance for trade');
+        break;
+      case GTXErrorCode.INVALID_SYMBOL:
+        console.error('Trading pair not found');
+        break;
+      case GTXErrorCode.RATE_LIMIT_EXCEEDED:
+        console.error('Rate limit exceeded, waiting...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        break;
+      default:
+        console.error('Unknown error:', error.message);
+    }
+  } else {
+    console.error('Network or other error:', error);
+  }
+}
+```
+
+## Type Definitions
+
+```typescript
+// Core types exported by the SDK
+interface Market {
+  symbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  poolId: string;
+  baseDecimals: number;
+  quoteDecimals: number;
+  volume: string;
+  volumeInQuote: string;
+  latestPrice: string;
+  bidLiquidity: string;
+  askLiquidity: string;
+  totalLiquidityInQuote: string;
+}
+
+interface Order {
+  symbol: string;
+  orderId: string;
+  clientOrderId: string;
+  price: string;
+  origQty: string;
+  executedQty: string;
+  status: OrderStatus;
+  type: OrderType;
+  side: OrderSide;
+  time: number;
+  updateTime: number;
+}
+
+interface OrderBookDepth {
+  lastUpdateId: number;
+  bids: [string, string][]; // [price, quantity]
+  asks: [string, string][]; // [price, quantity]
+}
+
+interface Trade {
+  id: string;
+  price: string;
+  qty: string;
+  time: number;
+  isBuyerMaker: boolean;
+}
+
+enum OrderStatus {
+  NEW = 'NEW',
+  PARTIALLY_FILLED = 'PARTIALLY_FILLED',
+  FILLED = 'FILLED',
+  CANCELED = 'CANCELED',
+  REJECTED = 'REJECTED'
+}
+
+enum OrderType {
+  LIMIT = 'LIMIT',
+  MARKET = 'MARKET'
+}
+
+enum OrderSide {
+  BUY = 'BUY',
+  SELL = 'SELL'
+}
+```
+
+## Configuration Options
+
+```typescript
+interface GTXClientConfig {
+  // Network configuration
+  chainId: ChainId;
+  rpcUrl?: string;
+  
+  // Authentication
+  privateKey?: string;
+  signer?: ethers.Signer;
+  
+  // API configuration  
+  apiBaseUrl?: string;
+  wsUrl?: string;
+  
+  // Rate limiting
+  maxRequestsPerMinute?: number;
+  
+  // Retry configuration
+  retryAttempts?: number;
+  retryDelay?: number;
+  
+  // Gas configuration
+  gasPrice?: string;
+  gasLimit?: number;
+  
+  // Debugging
+  debug?: boolean;
+}
+
+// Usage with custom configuration
+const client = new GTXClient({
+  chainId: ChainId.RISE_TESTNET,
+  rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+  privateKey: process.env.PRIVATE_KEY,
+  maxRequestsPerMinute: 600,
+  retryAttempts: 3,
+  debug: true
+});
+```
+
+## Testing
+
+```typescript
+// Mock client for testing
+import { GTXMockClient } from '@gtx/sdk/testing';
+
+const mockClient = new GTXMockClient();
+
+// Set up mock responses
+mockClient.mockGetMarkets([
+  {
+    symbol: 'ETHUSDC',
+    latestPrice: '2500.00',
+    // ... other properties
+  }
+]);
+
+mockClient.mockPlaceOrder((params) => ({
+  orderId: 'mock-order-123',
+  status: 'NEW'
+}));
+
+// Use in tests
+const markets = await mockClient.getMarkets();
+expect(markets).toHaveLength(1);
+expect(markets[0].symbol).toBe('ETHUSDC');
+```
+
+---
+
+<CardGroup cols={2}>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/introduction"
+  >
+    Complete API documentation
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="code"
+    href="/developers/smart-contracts"
+  >
+    Contract integration guide
+  </Card>
+</CardGroup>
+
+<Info>
+The TypeScript SDK provides full type safety and modern JavaScript features for building on GTX DEX. All methods return typed responses and include comprehensive error handling.
+</Info>

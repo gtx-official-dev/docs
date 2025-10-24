@@ -1,0 +1,344 @@
+---
+title: 'Development Setup'
+description: 'Set up your local development environment for GTX DEX documentation'
+---
+
+# Development Setup
+
+Get your GTX DEX documentation running locally and start making customizations.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js 18+** installed on your machine
+- **npm** or **yarn** package manager
+- **Git** for version control
+- A code editor (VS Code recommended)
+
+## Quick Start
+
+### Step 1: Clone the Repository
+
+```bash
+# Clone the GTX documentation repository
+git clone https://github.com/Great-Trading-eXperience/gtx-docs.git
+
+# Navigate to the docs directory
+cd gtx-docs
+```
+
+### Step 2: Install Mintlify CLI
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install -g @mintlify/cli
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn global add @mintlify/cli
+    ```
+  </Tab>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add -g @mintlify/cli
+    ```
+  </Tab>
+</Tabs>
+
+### Step 3: Start Development Server
+
+```bash
+# Start the local preview server
+mint dev
+
+# The server will start at http://localhost:3000
+```
+
+<Info>
+The development server will automatically reload when you make changes to your documentation files.
+</Info>
+
+## Project Structure
+
+Understanding the GTX DEX documentation structure:
+
+```
+gtx-docs/
+├── mint.json          # Mintlify configuration
+├── introduction.mdx   # Homepage content
+├── quickstart.mdx     # Quick start guide
+├── development.mdx    # This file
+├── trading/          # Trading documentation
+│   ├── overview.mdx
+│   ├── placing-orders.mdx
+│   └── order-types.mdx
+├── pools/            # Pool management docs
+├── rewards/          # Yield and rewards docs
+├── developers/       # Developer resources
+├── api-reference/    # API documentation
+└── sdks/            # SDK documentation
+```
+
+## Configuration
+
+### Mintlify Configuration (mint.json)
+
+The `mint.json` file contains all configuration for your documentation site:
+
+<AccordionGroup>
+  <Accordion title="Basic Settings">
+    ```json
+    {
+      "name": "GTX DEX",
+      "logo": {
+        "dark": "/logo/gtx-dark.png",
+        "light": "/logo/gtx-white.png"
+      },
+      "favicon": "/logo/gtx.png"
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Navigation Structure">
+    ```json
+    {
+      "navigation": [
+        {
+          "group": "Get Started",
+          "pages": [
+            "introduction",
+            "quickstart",
+            "development"
+          ]
+        }
+      ]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Branding & Colors">
+    ```json
+    {
+      "colors": {
+        "primary": "#0D9F7B",
+        "light": "#07C983",
+        "dark": "#0D9F7B"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Writing Documentation
+
+### Creating New Pages
+
+1. **Create a new `.mdx` file** in the appropriate directory
+2. **Add frontmatter** with title and description
+3. **Update navigation** in `mint.json`
+4. **Write content** using Markdown and MDX components
+
+Example page structure:
+
+```mdx
+---
+title: 'Your Page Title'
+description: 'Brief description of the page content'
+---
+
+# Page Heading
+
+Your content here using Markdown syntax.
+
+<Card title="Example Card" icon="lightbulb">
+  Card content with Mintlify components
+</Card>
+```
+
+### Using Mintlify Components
+
+Mintlify provides powerful components for rich documentation:
+
+<CardGroup cols={2}>
+  <Card
+    title="Cards"
+    icon="square"
+  >
+    Highlight important information with cards
+  </Card>
+  <Card
+    title="Accordions"
+    icon="list"
+  >
+    Organize content in collapsible sections
+  </Card>
+  <Card
+    title="Tabs"
+    icon="folder"
+  >
+    Show multiple options or code examples
+  </Card>
+  <Card
+    title="Callouts"
+    icon="exclamation"
+  >
+    Draw attention to important notes
+  </Card>
+</CardGroup>
+
+### Code Blocks
+
+Include syntax-highlighted code examples:
+
+```typescript
+// Example TypeScript code
+import { GTXClient } from '@gtx/sdk';
+
+const client = new GTXClient({
+  apiKey: 'your-api-key',
+  network: 'mainnet'
+});
+
+const markets = await client.getMarkets();
+```
+
+## Best Practices
+
+### Content Guidelines
+
+<Steps>
+  <Step title="Clear Structure">
+    Use hierarchical headings and logical content flow
+  </Step>
+  <Step title="Practical Examples">
+    Include working code examples and real use cases
+  </Step>
+  <Step title="Visual Elements">
+    Use Mintlify components to enhance readability
+  </Step>
+  <Step title="Cross-References">
+    Link to related documentation and external resources
+  </Step>
+</Steps>
+
+### File Organization
+
+- **Group related content** in directories
+- **Use descriptive filenames** with kebab-case
+- **Maintain consistent structure** across sections
+- **Keep navigation logical** and discoverable
+
+## Development Workflow
+
+### Making Changes
+
+1. **Edit documentation files** using your preferred editor
+2. **Preview changes** at http://localhost:3000
+3. **Test navigation** and component rendering
+4. **Commit changes** with descriptive messages
+
+### Adding New Sections
+
+<Tabs>
+  <Tab title="1. Create Directory">
+    ```bash
+    mkdir new-section
+    ```
+  </Tab>
+  <Tab title="2. Add Pages">
+    ```bash
+    touch new-section/overview.mdx
+    touch new-section/getting-started.mdx
+    ```
+  </Tab>
+  <Tab title="3. Update Navigation">
+    ```json
+    {
+      "group": "New Section",
+      "pages": [
+        "new-section/overview",
+        "new-section/getting-started"
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Deployment
+
+### Local Testing
+
+Before deploying, ensure your documentation:
+
+- **Builds successfully** with `mint build`
+- **Has no broken links** or missing pages
+- **Renders correctly** across different screen sizes
+- **Follows GTX DEX style guidelines**
+
+### Production Deployment
+
+The documentation is automatically deployed when changes are pushed to the main branch.
+
+<Warning>
+Always test changes locally before pushing to production.
+</Warning>
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Server won't start">
+    - Check that you have Node.js 18+ installed
+    - Verify Mintlify CLI is installed globally
+    - Ensure you're in the correct directory
+    - Try clearing npm cache: `npm cache clean --force`
+  </Accordion>
+  
+  <Accordion title="Navigation not updating">
+    - Check `mint.json` syntax for errors
+    - Ensure file paths match navigation entries
+    - Restart the development server
+  </Accordion>
+  
+  <Accordion title="Styling issues">
+    - Verify component syntax is correct
+    - Check for unclosed tags or brackets
+    - Review Mintlify component documentation
+  </Accordion>
+</AccordionGroup>
+
+## Resources
+
+<CardGroup cols={3}>
+  <Card
+    title="Mintlify Documentation"
+    icon="book"
+    href="https://mintlify.com/docs"
+  >
+    Official Mintlify documentation
+  </Card>
+  <Card
+    title="MDX Documentation"
+    icon="markdown"
+    href="https://mdxjs.com/"
+  >
+    Learn about MDX syntax
+  </Card>
+  <Card
+    title="GTX DEX GitHub"
+    icon="github"
+    href="https://github.com/Great-Trading-eXperience"
+  >
+    Source code and examples
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+Need help? Join our [Discord community](https://discord.gg/gtxdex) or reach out to our documentation team.
+</Note>

@@ -1,0 +1,1181 @@
+---
+title: 'Subgraph Integration'
+description: 'GraphQL API and blockchain data indexing for GTX DEX analytics'
+---
+
+# GTX DEX Subgraph
+
+The GTX DEX Subgraph provides a powerful GraphQL API for querying blockchain data, enabling developers to build analytics, dashboards, and historical data applications with complex queries and real-time indexing.
+
+## Overview
+
+The subgraph indexes all GTX DEX smart contract events and provides:
+
+- **Real-time data** - Events indexed as they occur on-chain
+- **Historical analysis** - Query any past transaction or state
+- **Complex queries** - Join data across multiple entities
+- **High performance** - Optimized for fast query responses
+
+### Subgraph Endpoints
+
+| Network | GraphQL Endpoint | Status |
+|---------|------------------|--------|
+| **RiseLabs Testnet** | `https://api.thegraph.com/subgraphs/name/gtx/rise-testnet` | Active |
+| **Mainnet** | `https://api.thegraph.com/subgraphs/name/gtx/mainnet` | Coming Soon |
+
+## Schema Overview
+
+### Core Entities
+
+<AccordionGroup>
+  <Accordion title="User">
+    ```graphql
+    type User @entity {
+      id: ID!                           # User address
+      totalTradesCount: BigInt!         # Total number of trades
+      totalVolumeUSD: BigDecimal!       # Total trading volume in USD
+      totalYieldEarned: BigDecimal!     # Total yield earned
+      totalGTXRewards: BigDecimal!      # Total GTX tokens earned
+      firstTradeTimestamp: BigInt!      # Timestamp of first trade
+      lastTradeTimestamp: BigInt!       # Timestamp of last trade
+      orders: [Order!]! @derivedFrom(field: "user")
+      trades: [Trade!]! @derivedFrom(field: "user")
+      deposits: [Deposit!]! @derivedFrom(field: "user")
+      withdrawals: [Withdrawal!]! @derivedFrom(field: "user")
+      yieldEvents: [YieldEvent!]! @derivedFrom(field: "user")
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Market">
+    ```graphql
+    type Market @entity {
+      id: ID!                           # Pool address
+      symbol: String!                   # Trading pair symbol (e.g., ETHUSDC)
+      baseToken: Token!                 # Base token (e.g., ETH)
+      quoteToken: Token!               # Quote token (e.g., USDC)
+      poolAddress: Bytes!              # Pool contract address
+      orderBookAddress: Bytes!         # OrderBook contract address
+      
+      # Volume metrics
+      volumeUSD: BigDecimal!           # Total volume in USD
+      volume24hUSD: BigDecimal!        # 24h volume in USD
+      volumeBase: BigDecimal!          # Total volume in base token
+      volumeQuote: BigDecimal!         # Total volume in quote token
+      
+      # Trade metrics
+      totalTrades: BigInt!             # Total number of trades
+      trades24h: BigInt!               # Trades in last 24h
+      
+      # Price data
+      priceUSD: BigDecimal!            # Current price in USD
+      priceHigh24h: BigDecimal!        # 24h high price
+      priceLow24h: BigDecimal!         # 24h low price
+      priceOpen24h: BigDecimal!        # 24h opening price
+      
+      # Liquidity
+      totalLiquidityUSD: BigDecimal!   # Total liquidity in USD
+      bidLiquidity: BigDecimal!        # Bid side liquidity
+      askLiquidity: BigDecimal!        # Ask side liquidity
+      
+      # Yield metrics
+      currentAPY: BigDecimal!          # Current yield APY
+      totalYieldGenerated: BigDecimal! # Total yield generated
+      
+      # Relationships
+      orders: [Order!]! @derivedFrom(field: "market")
+      trades: [Trade!]! @derivedFrom(field: "market")
+      candlesticks: [Candlestick!]! @derivedFrom(field: "market")
+      yieldSnapshots: [YieldSnapshot!]! @derivedFrom(field: "market")
+      
+      # Timestamps
+      createdAtTimestamp: BigInt!
+      updatedAtTimestamp: BigInt!
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Order">
+    ```graphql
+    type Order @entity {
+      id: ID!                          # Order ID
+      user: User!                      # Order creator
+      market: Market!                  # Trading market
+      
+      # Order details
+      side: OrderSide!                 # BUY or SELL
+      type: OrderType!                 # LIMIT or MARKET
+      amount: BigDecimal!              # Order quantity
+      price: BigDecimal!               # Order price
+      filledAmount: BigDecimal!        # Filled quantity
+      remainingAmount: BigDecimal!     # Remaining quantity
+      
+      # Status
+      status: OrderStatus!             # NEW, FILLED, CANCELLED, etc.
+      timeInForce: TimeInForce!        # GTC, IOC, FOK
+      
+      # Yield tracking
+      yieldAccrued: BigDecimal!        # Yield earned while open
+      yieldRate: BigDecimal!           # Yield rate when placed
+      
+      # Timestamps
+      createdAtTimestamp: BigInt!
+      updatedAtTimestamp: BigInt!
+      filledAtTimestamp: BigInt
+      cancelledAtTimestamp: BigInt
+      
+      # Gas and fees
+      creationGasUsed: BigInt!
+      creationGasPrice: BigInt!
+      totalFeesPaid: BigDecimal!
+      
+      # Relationships
+      fills: [OrderFill!]! @derivedFrom(field: "order")
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Trade">
+    ```graphql
+    type Trade @entity {
+      id: ID!                          # Trade ID
+      market: Market!                  # Trading market
+      user: User!                      # Trader (taker)
+      maker: User!                     # Liquidity provider
+      
+      # Trade details
+      side: OrderSide!                 # BUY or SELL (from taker perspective)
+      amount: BigDecimal!              # Trade quantity
+      price: BigDecimal!               # Execution price
+      amountUSD: BigDecimal!           # Trade value in USD
+      
+      # Orders involved
+      takerOrder: Order!               # Taker order
+      makerOrder: Order!               # Maker order
+      
+      # Fees
+      takerFee: BigDecimal!            # Fee paid by taker
+      makerFee: BigDecimal!            # Fee paid by maker
+      feeCurrency: Token!              # Fee token
+      
+      # Yield impact
+      makerYieldGenerated: BigDecimal! # Yield generated for maker
+      
+      # Transaction details
+      transactionHash: Bytes!
+      blockNumber: BigInt!
+      timestamp: BigInt!
+      gasUsed: BigInt!
+      gasPrice: BigInt!
+      
+      # Market impact
+      priceImpact: BigDecimal!         # Price impact percentage
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Enums
+
+```graphql
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderType {
+  LIMIT
+  MARKET
+}
+
+enum OrderStatus {
+  NEW
+  PARTIALLY_FILLED
+  FILLED
+  CANCELLED
+  REJECTED
+}
+
+enum TimeInForce {
+  GTC  # Good Till Cancelled
+  IOC  # Immediate or Cancel
+  FOK  # Fill or Kill
+}
+
+enum YieldEventType {
+  ACCRUAL
+  CLAIM
+  COMPOUND
+}
+```
+
+## Common Queries
+
+### User Analytics
+
+<CodeGroup>
+
+```graphql User Trading Stats
+query GetUserStats($userAddress: String!) {
+  user(id: $userAddress) {
+    id
+    totalTradesCount
+    totalVolumeUSD
+    totalYieldEarned
+    totalGTXRewards
+    firstTradeTimestamp
+    lastTradeTimestamp
+    
+    # Recent orders
+    orders(
+      first: 10
+      orderBy: createdAtTimestamp
+      orderDirection: desc
+    ) {
+      id
+      side
+      amount
+      price
+      status
+      yieldAccrued
+      createdAtTimestamp
+      market {
+        symbol
+      }
+    }
+    
+    # Recent trades
+    trades(
+      first: 10
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      side
+      amount
+      price
+      amountUSD
+      timestamp
+      market {
+        symbol
+      }
+    }
+  }
+}
+```
+
+```javascript JavaScript Usage
+const query = `
+  query GetUserStats($userAddress: String!) {
+    user(id: $userAddress) {
+      totalTradesCount
+      totalVolumeUSD
+      totalYieldEarned
+    }
+  }
+`;
+
+const response = await fetch('https://api.thegraph.com/subgraphs/name/gtx/rise-testnet', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    query,
+    variables: {
+      userAddress: '0x1234567890123456789012345678901234567890'
+    }
+  })
+});
+
+const data = await response.json();
+console.log('User stats:', data.data.user);
+```
+
+</CodeGroup>
+
+### Market Analysis
+
+<CodeGroup>
+
+```graphql Market Overview
+query GetMarketData {
+  markets(
+    first: 10
+    orderBy: volumeUSD
+    orderDirection: desc
+  ) {
+    id
+    symbol
+    priceUSD
+    volume24hUSD
+    totalLiquidityUSD
+    currentAPY
+    totalTrades
+    
+    # Price changes
+    priceHigh24h
+    priceLow24h
+    priceOpen24h
+    
+    # Recent trades
+    trades(
+      first: 5
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      amount
+      price
+      side
+      timestamp
+      user {
+        id
+      }
+    }
+    
+    # Top orders by size
+    orders(
+      first: 5
+      where: { status: NEW }
+      orderBy: amount
+      orderDirection: desc
+    ) {
+      id
+      side
+      amount
+      price
+      yieldAccrued
+      user {
+        id
+      }
+    }
+  }
+}
+```
+
+```python Python Analysis
+import requests
+import pandas as pd
+
+def get_market_data():
+    query = """
+    query GetMarketData {
+      markets(first: 10, orderBy: volumeUSD, orderDirection: desc) {
+        symbol
+        priceUSD
+        volume24hUSD
+        totalLiquidityUSD
+        currentAPY
+        priceHigh24h
+        priceLow24h
+        priceOpen24h
+      }
+    }
+    """
+    
+    response = requests.post(
+        'https://api.thegraph.com/subgraphs/name/gtx/rise-testnet',
+        json={'query': query}
+    )
+    
+    data = response.json()
+    markets = data['data']['markets']
+    
+    # Convert to DataFrame for analysis
+    df = pd.DataFrame(markets)
+    df['priceUSD'] = pd.to_numeric(df['priceUSD'])
+    df['volume24hUSD'] = pd.to_numeric(df['volume24hUSD'])
+    df['currentAPY'] = pd.to_numeric(df['currentAPY'])
+    
+    # Calculate 24h price change
+    df['priceChange24h'] = (
+        (df['priceUSD'] - pd.to_numeric(df['priceOpen24h'])) / 
+        pd.to_numeric(df['priceOpen24h']) * 100
+    )
+    
+    return df
+
+# Usage
+market_df = get_market_data()
+print("Top markets by volume:")
+print(market_df[['symbol', 'volume24hUSD', 'currentAPY', 'priceChange24h']])
+```
+
+</CodeGroup>
+
+### Historical Data
+
+<CodeGroup>
+
+```graphql Time Series Data
+query GetHistoricalData($marketId: String!, $startTime: BigInt!) {
+  # Hourly candlesticks
+  candlesticks(
+    where: { 
+      market: $marketId
+      timestamp_gte: $startTime
+      period: HOUR
+    }
+    orderBy: timestamp
+    orderDirection: asc
+  ) {
+    timestamp
+    open
+    high
+    low
+    close
+    volume
+    volumeUSD
+  }
+  
+  # Daily yield snapshots
+  yieldSnapshots(
+    where: {
+      market: $marketId
+      timestamp_gte: $startTime
+    }
+    orderBy: timestamp
+    orderDirection: asc
+  ) {
+    timestamp
+    apy
+    totalYieldGenerated
+    activeOrders
+    totalLiquidity
+  }
+  
+  # Large trades
+  trades(
+    where: {
+      market: $marketId
+      timestamp_gte: $startTime
+      amountUSD_gte: "10000"
+    }
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    timestamp
+    amount
+    price
+    amountUSD
+    side
+    priceImpact
+    user {
+      id
+    }
+  }
+}
+```
+
+```typescript TypeScript Analytics
+interface CandlestickData {
+  timestamp: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  volumeUSD: string;
+}
+
+class GTXAnalytics {
+  private subgraphUrl = 'https://api.thegraph.com/subgraphs/name/gtx/rise-testnet';
+  
+  async getMarketHistory(marketId: string, days: number = 7): Promise<CandlestickData[]> {
+    const startTime = Math.floor((Date.now() - days * 24 * 60 * 60 * 1000) / 1000);
+    
+    const query = `
+      query GetCandlesticks($marketId: String!, $startTime: BigInt!) {
+        candlesticks(
+          where: { 
+            market: $marketId
+            timestamp_gte: $startTime
+            period: HOUR
+          }
+          orderBy: timestamp
+          orderDirection: asc
+        ) {
+          timestamp
+          open
+          high
+          low
+          close
+          volume
+          volumeUSD
+        }
+      }
+    `;
+    
+    const response = await fetch(this.subgraphUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        variables: { marketId, startTime: startTime.toString() }
+      })
+    });
+    
+    const data = await response.json();
+    return data.data.candlesticks;
+  }
+  
+  async calculateTechnicalIndicators(marketId: string): Promise<any> {
+    const candlesticks = await this.getMarketHistory(marketId, 50);
+    
+    if (candlesticks.length < 20) {
+      throw new Error('Insufficient data for technical analysis');
+    }
+    
+    const closes = candlesticks.map(c => parseFloat(c.close));
+    
+    // Simple Moving Average (20 period)
+    const sma20 = this.calculateSMA(closes, 20);
+    
+    // RSI (14 period)
+    const rsi = this.calculateRSI(closes, 14);
+    
+    // MACD
+    const macd = this.calculateMACD(closes);
+    
+    return {
+      currentPrice: closes[closes.length - 1],
+      sma20: sma20[sma20.length - 1],
+      rsi: rsi[rsi.length - 1],
+      macd: macd.macd[macd.macd.length - 1],
+      macdSignal: macd.signal[macd.signal.length - 1],
+      timestamp: candlesticks[candlesticks.length - 1].timestamp
+    };
+  }
+  
+  private calculateSMA(prices: number[], period: number): number[] {
+    const sma = [];
+    for (let i = period - 1; i < prices.length; i++) {
+      const sum = prices.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
+      sma.push(sum / period);
+    }
+    return sma;
+  }
+  
+  private calculateRSI(prices: number[], period: number): number[] {
+    const gains: number[] = [];
+    const losses: number[] = [];
+    
+    for (let i = 1; i < prices.length; i++) {
+      const change = prices[i] - prices[i - 1];
+      gains.push(change > 0 ? change : 0);
+      losses.push(change < 0 ? -change : 0);
+    }
+    
+    const avgGains = this.calculateSMA(gains, period);
+    const avgLosses = this.calculateSMA(losses, period);
+    
+    return avgGains.map((gain, i) => {
+      const avgLoss = avgLosses[i];
+      if (avgLoss === 0) return 100;
+      const rs = gain / avgLoss;
+      return 100 - (100 / (1 + rs));
+    });
+  }
+  
+  private calculateMACD(prices: number[]): { macd: number[], signal: number[] } {
+    const ema12 = this.calculateEMA(prices, 12);
+    const ema26 = this.calculateEMA(prices, 26);
+    
+    const macd = ema12.map((val, i) => val - ema26[i]);
+    const signal = this.calculateEMA(macd, 9);
+    
+    return { macd, signal };
+  }
+  
+  private calculateEMA(prices: number[], period: number): number[] {
+    const multiplier = 2 / (period + 1);
+    const ema = [prices[0]];
+    
+    for (let i = 1; i < prices.length; i++) {
+      ema.push((prices[i] * multiplier) + (ema[i - 1] * (1 - multiplier)));
+    }
+    
+    return ema;
+  }
+}
+
+// Usage
+const analytics = new GTXAnalytics();
+const indicators = await analytics.calculateTechnicalIndicators('0x...');
+console.log('Technical indicators:', indicators);
+```
+
+</CodeGroup>
+
+### Yield Analytics
+
+<CodeGroup>
+
+```graphql Yield Performance
+query GetYieldData($userAddress: String!, $startTime: BigInt!) {
+  user(id: $userAddress) {
+    totalYieldEarned
+    totalGTXRewards
+    
+    # Yield events
+    yieldEvents(
+      where: { timestamp_gte: $startTime }
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      type
+      amount
+      market {
+        symbol
+      }
+      timestamp
+      yieldRate
+      cumulativeYield
+    }
+    
+    # Active orders earning yield
+    orders(
+      where: { 
+        status: NEW
+        yieldAccrued_gt: "0"
+      }
+      orderBy: yieldAccrued
+      orderDirection: desc
+    ) {
+      id
+      amount
+      price
+      yieldAccrued
+      yieldRate
+      createdAtTimestamp
+      market {
+        symbol
+        currentAPY
+      }
+    }
+  }
+  
+  # Overall yield statistics
+  markets {
+    symbol
+    currentAPY
+    totalYieldGenerated
+    
+    # Top yield earners
+    orders(
+      first: 5
+      where: { yieldAccrued_gt: "0" }
+      orderBy: yieldAccrued
+      orderDirection: desc
+    ) {
+      yieldAccrued
+      amount
+      user {
+        id
+      }
+    }
+  }
+}
+```
+
+```python Python Yield Analysis
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime, timedelta
+
+class YieldAnalyzer:
+    def __init__(self, subgraph_url):
+        self.subgraph_url = subgraph_url
+    
+    def analyze_user_yield(self, user_address: str, days: int = 30):
+        start_time = int((datetime.now() - timedelta(days=days)).timestamp())
+        
+        query = """
+        query GetUserYield($userAddress: String!, $startTime: BigInt!) {
+          user(id: $userAddress) {
+            totalYieldEarned
+            yieldEvents(
+              where: { timestamp_gte: $startTime }
+              orderBy: timestamp
+              orderDirection: asc
+            ) {
+              timestamp
+              amount
+              cumulativeYield
+              type
+              market { symbol }
+            }
+          }
+        }
+        """
+        
+        response = requests.post(self.subgraph_url, json={
+            'query': query,
+            'variables': {
+                'userAddress': user_address,
+                'startTime': str(start_time)
+            }
+        })
+        
+        data = response.json()
+        yield_events = data['data']['user']['yieldEvents']
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(yield_events)
+        df['timestamp'] = pd.to_datetime(df['timestamp'].astype(int), unit='s')
+        df['amount'] = pd.to_numeric(df['amount'])
+        df['cumulativeYield'] = pd.to_numeric(df['cumulativeYield'])
+        
+        return self.calculate_yield_metrics(df)
+    
+    def calculate_yield_metrics(self, df: pd.DataFrame):
+        if df.empty:
+            return {
+                'total_yield': 0,
+                'daily_average': 0,
+                'best_day': 0,
+                'apy_estimate': 0
+            }
+        
+        # Group by day
+        daily_yield = df.groupby(df['timestamp'].dt.date)['amount'].sum()
+        
+        # Calculate metrics
+        total_yield = df['amount'].sum()
+        daily_average = daily_yield.mean()
+        best_day = daily_yield.max()
+        
+        # Estimate APY (simplified)
+        days_active = len(daily_yield)
+        if days_active > 0:
+            daily_rate = daily_average / 1000  # Assume $1000 average position
+            apy_estimate = ((1 + daily_rate) ** 365 - 1) * 100
+        else:
+            apy_estimate = 0
+        
+        return {
+            'total_yield': total_yield,
+            'daily_average': daily_average,
+            'best_day': best_day,
+            'apy_estimate': apy_estimate,
+            'daily_data': daily_yield
+        }
+    
+    def plot_yield_history(self, yield_data):
+        plt.figure(figsize=(12, 8))
+        
+        # Subplot 1: Daily yield
+        plt.subplot(2, 1, 1)
+        yield_data['daily_data'].plot(kind='bar', alpha=0.7)
+        plt.title('Daily Yield Earnings')
+        plt.ylabel('Yield Amount')
+        plt.xticks(rotation=45)
+        
+        # Subplot 2: Cumulative yield
+        plt.subplot(2, 1, 2)
+        cumulative = yield_data['daily_data'].cumsum()
+        cumulative.plot(marker='o')
+        plt.title('Cumulative Yield Growth')
+        plt.ylabel('Total Yield')
+        plt.xlabel('Date')
+        
+        plt.tight_layout()
+        plt.show()
+
+# Usage
+analyzer = YieldAnalyzer('https://api.thegraph.com/subgraphs/name/gtx/rise-testnet')
+yield_data = analyzer.analyze_user_yield('0x1234...', days=30)
+analyzer.plot_yield_history(yield_data)
+```
+
+</CodeGroup>
+
+## Advanced Queries
+
+### Cross-Market Analysis
+
+```graphql
+query CrossMarketAnalysis($minVolume: BigDecimal!) {
+  markets(
+    where: { volume24hUSD_gte: $minVolume }
+    orderBy: volume24hUSD
+    orderDirection: desc
+  ) {
+    symbol
+    priceUSD
+    volume24hUSD
+    currentAPY
+    totalLiquidityUSD
+    
+    # Price correlation data
+    candlesticks(
+      first: 24
+      orderBy: timestamp
+      orderDirection: desc
+      where: { period: HOUR }
+    ) {
+      timestamp
+      close
+    }
+    
+    # Liquidity distribution
+    orders(
+      first: 100
+      where: { status: NEW }
+      orderBy: amount
+      orderDirection: desc
+    ) {
+      side
+      amount
+      price
+    }
+  }
+}
+```
+
+### Arbitrage Opportunities
+
+```graphql
+query ArbitrageOpportunities($minSpread: BigDecimal!) {
+  markets {
+    symbol
+    priceUSD
+    
+    # Best bid/ask from recent trades
+    buyTrades: trades(
+      first: 1
+      where: { side: BUY }
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      price
+      timestamp
+    }
+    
+    sellTrades: trades(
+      first: 1  
+      where: { side: SELL }
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      price
+      timestamp
+    }
+    
+    # Current order book liquidity
+    buyOrders: orders(
+      first: 5
+      where: { 
+        status: NEW
+        side: BUY
+      }
+      orderBy: price
+      orderDirection: desc
+    ) {
+      price
+      amount
+    }
+    
+    sellOrders: orders(
+      first: 5
+      where: {
+        status: NEW
+        side: SELL
+      }
+      orderBy: price
+      orderDirection: asc
+    ) {
+      price
+      amount
+    }
+  }
+}
+```
+
+## Integration Examples
+
+### React Dashboard
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+
+const MARKET_DATA_QUERY = gql`
+  query GetMarketData {
+    markets(first: 10, orderBy: volume24hUSD, orderDirection: desc) {
+      id
+      symbol
+      priceUSD
+      volume24hUSD
+      currentAPY
+      totalLiquidityUSD
+      priceHigh24h
+      priceLow24h
+      priceOpen24h
+    }
+  }
+`;
+
+const MarketDashboard: React.FC = () => {
+  const { loading, error, data, refetch } = useQuery(MARKET_DATA_QUERY, {
+    pollInterval: 30000 // Refresh every 30 seconds
+  });
+
+  if (loading) return <div>Loading market data...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  const markets = data?.markets || [];
+
+  return (
+    <div className="market-dashboard">
+      <h2>GTX DEX Markets</h2>
+      <div className="market-grid">
+        {markets.map((market: any) => {
+          const priceChange = (
+            (parseFloat(market.priceUSD) - parseFloat(market.priceOpen24h)) /
+            parseFloat(market.priceOpen24h) * 100
+          );
+
+          return (
+            <div key={market.id} className="market-card">
+              <h3>{market.symbol}</h3>
+              <div className="price">
+                ${parseFloat(market.priceUSD).toFixed(2)}
+                <span className={priceChange >= 0 ? 'positive' : 'negative'}>
+                  ({priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%)
+                </span>
+              </div>
+              <div className="metrics">
+                <div>Volume: ${parseFloat(market.volume24hUSD).toLocaleString()}</div>
+                <div>APY: {parseFloat(market.currentAPY).toFixed(2)}%</div>
+                <div>Liquidity: ${parseFloat(market.totalLiquidityUSD).toLocaleString()}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default MarketDashboard;
+```
+
+### Python Trading Bot
+
+```python
+class SubgraphTradingBot:
+    def __init__(self, subgraph_url, gtx_client):
+        self.subgraph_url = subgraph_url
+        self.gtx_client = gtx_client
+    
+    async def analyze_market_opportunities(self):
+        """Find trading opportunities using subgraph data"""
+        
+        # Get market data
+        query = """
+        query GetOpportunities {
+          markets(first: 20, orderBy: volume24hUSD, orderDirection: desc) {
+            symbol
+            currentAPY
+            volume24hUSD
+            totalLiquidityUSD
+            
+            # Recent large trades for momentum analysis
+            trades(
+              first: 10
+              orderBy: timestamp
+              orderDirection: desc
+              where: { amountUSD_gte: "1000" }
+            ) {
+              side
+              price
+              amountUSD
+              timestamp
+              priceImpact
+            }
+            
+            # Current order book for liquidity analysis
+            orders(
+              first: 20
+              where: { status: NEW }
+              orderBy: amount
+              orderDirection: desc
+            ) {
+              side
+              price
+              amount
+            }
+          }
+        }
+        """
+        
+        response = requests.post(self.subgraph_url, json={'query': query})
+        data = response.json()
+        
+        opportunities = []
+        
+        for market in data['data']['markets']:
+            # Analyze momentum
+            recent_trades = market['trades']
+            if len(recent_trades) >= 5:
+                buy_volume = sum(float(t['amountUSD']) for t in recent_trades if t['side'] == 'BUY')
+                sell_volume = sum(float(t['amountUSD']) for t in recent_trades if t['side'] == 'SELL')
+                
+                momentum = (buy_volume - sell_volume) / (buy_volume + sell_volume) if (buy_volume + sell_volume) > 0 else 0
+                
+                # Analyze liquidity imbalance
+                orders = market['orders']
+                buy_liquidity = sum(float(o['amount']) * float(o['price']) for o in orders if o['side'] == 'BUY')
+                sell_liquidity = sum(float(o['amount']) * float(o['price']) for o in orders if o['side'] == 'SELL')
+                
+                liquidity_ratio = buy_liquidity / sell_liquidity if sell_liquidity > 0 else float('inf')
+                
+                # Calculate opportunity score
+                volume_score = min(float(market['volume24hUSD']) / 100000, 1.0)  # Normalize to max 1.0
+                yield_score = min(float(market['currentAPY']) / 20, 1.0)  # Normalize to max 1.0
+                momentum_score = abs(momentum)
+                
+                opportunity_score = (volume_score + yield_score + momentum_score) / 3
+                
+                if opportunity_score > 0.6:  # Threshold for opportunities
+                    opportunities.append({
+                        'symbol': market['symbol'],
+                        'score': opportunity_score,
+                        'momentum': momentum,
+                        'liquidity_ratio': liquidity_ratio,
+                        'apy': float(market['currentAPY']),
+                        'volume_24h': float(market['volume24hUSD']),
+                        'strategy': self.determine_strategy(momentum, liquidity_ratio, yield_score)
+                    })
+        
+        # Sort by opportunity score
+        opportunities.sort(key=lambda x: x['score'], reverse=True)
+        return opportunities
+    
+    def determine_strategy(self, momentum, liquidity_ratio, yield_score):
+        """Determine optimal strategy based on market conditions"""
+        
+        if yield_score > 0.8:
+            return 'yield_farming'  # High yield opportunity
+        elif abs(momentum) > 0.3:
+            return 'momentum_trading'  # Strong momentum
+        elif liquidity_ratio > 2 or liquidity_ratio < 0.5:
+            return 'liquidity_provision'  # Imbalanced liquidity
+        else:
+            return 'market_making'  # Balanced market
+    
+    async def execute_strategy(self, opportunity):
+        """Execute trading strategy based on opportunity"""
+        
+        symbol = opportunity['symbol']
+        strategy = opportunity['strategy']
+        
+        if strategy == 'yield_farming':
+            # Place limit orders to earn yield
+            await self.place_yield_orders(symbol)
+        elif strategy == 'momentum_trading':
+            # Follow momentum direction
+            await self.place_momentum_orders(symbol, opportunity['momentum'])
+        elif strategy == 'market_making':
+            # Provide liquidity on both sides
+            await self.place_market_making_orders(symbol)
+        
+        print(f"Executed {strategy} strategy for {symbol}")
+
+# Usage
+bot = SubgraphTradingBot(
+    'https://api.thegraph.com/subgraphs/name/gtx/rise-testnet',
+    gtx_client
+)
+
+opportunities = await bot.analyze_market_opportunities()
+for opp in opportunities[:3]:  # Execute top 3 opportunities
+    await bot.execute_strategy(opp)
+```
+
+## Performance Optimization
+
+### Efficient Queries
+
+<AccordionGroup>
+  <Accordion title="Pagination">
+    ```graphql
+    # Use pagination for large datasets
+    query GetTradesPaginated($skip: Int!, $first: Int!) {
+      trades(
+        skip: $skip
+        first: $first
+        orderBy: timestamp
+        orderDirection: desc
+      ) {
+        id
+        amount
+        price
+        timestamp
+        market { symbol }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Field Selection">
+    ```graphql
+    # Only request needed fields
+    query GetMarketPrices {
+      markets {
+        symbol
+        priceUSD  # Don't request unnecessary fields
+        # volume24hUSD - commented out if not needed
+        # totalLiquidityUSD - commented out if not needed
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Filtering">
+    ```graphql
+    # Use where clauses to reduce data
+    query GetActiveOrders($minAmount: BigDecimal!) {
+      orders(
+        where: {
+          status: NEW
+          amount_gte: $minAmount
+        }
+        first: 100
+      ) {
+        id
+        amount
+        price
+        market { symbol }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+<CardGroup cols={2}>
+  <Card
+    title="GraphQL Playground"
+    icon="play"
+    href="https://api.thegraph.com/subgraphs/name/gtx/rise-testnet"
+  >
+    Interactive query interface
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="code"
+    href="/developers/smart-contracts"
+  >
+    Contract addresses and ABIs
+  </Card>
+</CardGroup>
+
+<Info>
+The GTX DEX Subgraph provides powerful analytics capabilities. Combine with real-time WebSocket data for comprehensive trading applications that leverage both historical insights and live market data.
+</Info>

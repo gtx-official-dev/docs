@@ -1,0 +1,546 @@
+---
+title: 'Test Token Faucet'
+description: 'Get test tokens for development and testing on GTX DEX testnet'
+---
+
+# Test Token Faucet
+
+The GTX DEX Test Token Faucet provides developers and users with test tokens needed for development, testing, and experimentation across multiple testnets including RiseLabs testnet and Base Sepolia.
+
+## Overview
+
+The faucet system allows users to request test tokens with built-in rate limiting and balance management:
+
+- **Multiple Token Support** - Request various test tokens
+- **Cooldown Periods** - Prevents spam and ensures fair distribution
+- **Balance Tracking** - Monitor both user and faucet balances
+- **Request History** - Track all previous token requests
+- **Automatic Distribution** - Instant token delivery upon request
+
+<CardGroup cols={2}>
+  <Card
+    title="Development Testing"
+    icon="code"
+  >
+    Get tokens for smart contract testing and development
+  </Card>
+  <Card
+    title="Trading Practice"
+    icon="chart-line"
+  >
+    Practice trading strategies with test tokens
+  </Card>
+  <Card
+    title="Integration Testing"
+    icon="puzzle-piece"
+  >
+    Test API integrations and SDK functionality
+  </Card>
+  <Card
+    title="UI/UX Testing"
+    icon="monitor"
+  >
+    Test frontend interfaces and user workflows
+  </Card>
+</CardGroup>
+
+## Available Test Tokens
+
+The faucet provides the following test tokens on RiseLabs testnet:
+
+### Core Trading Tokens
+
+| Token | Symbol | Address | Decimals | Amount per Request |
+|-------|--------|---------|----------|-------------------|
+| **Mock USD Coin** | MUSDC | `0xC004...CffF` | 6 | 1,000 MUSDC |
+| **Mock Wrapped Ethereum** | mWETH | `0xbb66...e99` | 18 | 5 mWETH |
+| **Mock Wrapped Bitcoin** | mWBTC | `0xdDbe...A293` | 8 | 0.1 mWBTC |
+| **Mock Chainlink** | LINK | `0x24b1...D901E` | 18 | 100 LINK |
+| **Mock Pepe** | PEPE | `0x7FB2...D147874` | 18 | 1,000,000 PEPE |
+
+<Note>
+Token addresses are shortened for display. Full addresses are available in the smart contracts documentation.
+</Note>
+
+## Using the Faucet
+
+### Step-by-Step Guide
+
+<Steps>
+  <Step title="Connect Wallet">
+    Connect your wallet to the RiseLabs testnet
+  </Step>
+  <Step title="Select Token">
+    Choose which test token you want to request from the dropdown
+  </Step>
+  <Step title="Check Cooldown">
+    Verify you're not in cooldown period from previous requests
+  </Step>
+  <Step title="Request Tokens">
+    Click "Request Tokens" to submit your request
+  </Step>
+  <Step title="Confirm Transaction">
+    Approve the transaction in your wallet
+  </Step>
+  <Step title="Receive Tokens">
+    Tokens are automatically transferred to your wallet
+  </Step>
+</Steps>
+
+### Faucet Interface Features
+
+<AccordionGroup>
+  <Accordion title="Token Selection">
+    **Smart Token Picker**
+    
+    - Visual display of available tokens
+    - Real-time balance information
+    - Token symbol and contract address
+    - Amount per request clearly shown
+    
+    ```javascript
+    // Example token selection
+    {
+      token: "0xC004514803F58b09eee24471BC9EfF3D1087CffF",
+      symbol: "MUSDC",
+      amount: "1000",
+      decimals: 6
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Balance Tracking">
+    **Real-time Balance Display**
+    
+    - Your current token balance
+    - Faucet remaining balance
+    - Last request timestamp
+    - Next eligible request time
+    
+    ```javascript
+    // Balance information
+    {
+      userBalance: "2,500.00 MUSDC",
+      faucetBalance: "500,000.00 MUSDC", 
+      lastRequest: "2024-01-15T10:30:00Z",
+      nextEligible: "2024-01-15T11:30:00Z"
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Request History">
+    **Transaction Tracking**
+    
+    - Complete history of your requests
+    - Transaction hashes and timestamps
+    - Request status and amounts
+    - Explorer links for verification
+  </Accordion>
+</AccordionGroup>
+
+## Rate Limiting & Cooldowns
+
+### Cooldown System
+
+The faucet implements cooldown periods to ensure fair distribution:
+
+<Tabs>
+  <Tab title="Cooldown Rules">
+    **Request Limitations**
+    
+    - **Cooldown Period**: 1 hour between requests per address
+    - **Daily Limit**: Maximum requests per 24-hour period
+    - **Token Specific**: Cooldowns apply per token type
+    - **Fair Distribution**: Prevents spam and hoarding
+    
+    ```javascript
+    // Cooldown calculation
+    const COOLDOWN_PERIOD = 3600; // 1 hour in seconds
+    const lastRequestTime = 1642248600; // Unix timestamp
+    const currentTime = Date.now() / 1000;
+    const timeRemaining = COOLDOWN_PERIOD - (currentTime - lastRequestTime);
+    
+    const canRequest = timeRemaining <= 0;
+    ```
+  </Tab>
+  
+  <Tab title="Cooldown Status">
+    **Real-time Status Display**
+    
+    The interface shows your cooldown status:
+    
+    - ✅ **Ready**: You can request tokens
+    - ⏳ **Cooling Down**: Time remaining until next request
+    - ❌ **Limit Reached**: Daily limit exceeded
+    - 🔄 **Processing**: Request currently being processed
+    
+    ```javascript
+    // Status examples
+    {
+      status: "ready", // Can request immediately
+      timeRemaining: 0,
+      message: "Ready to request tokens"
+    }
+    
+    {
+      status: "cooldown",
+      timeRemaining: 1847, // 30 minutes 47 seconds
+      message: "Next request available in 30m 47s"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Integration Examples
+
+### Direct Faucet Requests
+
+<CodeGroup>
+
+```typescript TypeScript SDK
+import { GTXFaucet } from '@gtx/sdk';
+
+const faucet = new GTXFaucet({
+  chainId: ChainId.RISE_TESTNET,
+  privateKey: process.env.PRIVATE_KEY
+});
+
+// Request test tokens
+async function requestTestTokens() {
+  try {
+    // Check if eligible for request
+    const isEligible = await faucet.checkEligibility(
+      userAddress,
+      tokenAddress
+    );
+    
+    if (!isEligible) {
+      console.log('Still in cooldown period');
+      return;
+    }
+    
+    // Request tokens
+    const result = await faucet.requestTokens({
+      token: '0xC004514803F58b09eee24471BC9EfF3D1087CffF', // MUSDC
+      recipient: userAddress
+    });
+    
+    console.log('Tokens requested:', result.transactionHash);
+    console.log('Amount received:', result.amount);
+  } catch (error) {
+    console.error('Faucet request failed:', error);
+  }
+}
+```
+
+```python Python SDK
+from gtx import GTXFaucet, ChainId
+
+faucet = GTXFaucet(
+    chain_id=ChainId.RISE_TESTNET,
+    private_key="your_private_key"
+)
+
+# Request test tokens
+async def request_test_tokens():
+    try:
+        # Check eligibility
+        is_eligible = await faucet.check_eligibility(
+            user_address,
+            token_address
+        )
+        
+        if not is_eligible:
+            print("Still in cooldown period")
+            return
+        
+        # Request tokens
+        result = await faucet.request_tokens(
+            token="0xC004514803F58b09eee24471BC9EfF3D1087CffF",
+            recipient=user_address
+        )
+        
+        print(f"Tokens requested: {result.transaction_hash}")
+        print(f"Amount received: {result.amount}")
+    except Exception as error:
+        print(f"Faucet request failed: {error}")
+```
+
+</CodeGroup>
+
+### Automated Testing Setup
+
+#### Test Environment Setup
+
+```typescript
+class TestEnvironment {
+  private faucet: GTXFaucet;
+  private client: GTXClient;
+  
+  constructor() {
+    this.faucet = new GTXFaucet({
+      chainId: ChainId.RISE_TESTNET,
+      privateKey: process.env.TEST_PRIVATE_KEY
+    });
+    
+    this.client = new GTXClient({
+      chainId: ChainId.RISE_TESTNET,
+      privateKey: process.env.TEST_PRIVATE_KEY
+    });
+  }
+  
+  async setupTradingTokens() {
+    const tokens = [
+      { symbol: 'MUSDC', address: '0xC004514803F58b09eee24471BC9EfF3D1087CffF' },
+      { symbol: 'mWETH', address: '0xbb66130EED9BD4ea584cf283d34E49E8d4d69e99' },
+      { symbol: 'mWBTC', address: '0xdDbe918dcA0F0B876c2Dff6ff3db4FA0C943A293' }
+    ];
+    
+    for (const token of tokens) {
+      try {
+        await this.faucet.requestTokens({
+          token: token.address,
+          recipient: await this.client.getAddress()
+        });
+        
+        console.log(`✅ Received ${token.symbol} test tokens`);
+        
+        // Wait for cooldown between requests
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } catch (error) {
+        console.error(`❌ Failed to get ${token.symbol}:`, error);
+      }
+    }
+  }
+  
+  async verifyBalances() {
+    const account = await this.client.getAccount();
+    
+    console.log('📊 Test token balances:');
+    account.balances.forEach(balance => {
+      if (parseFloat(balance.free) > 0) {
+        console.log(`  ${balance.asset}: ${balance.free}`);
+      }
+    });
+  }
+}
+
+// Usage
+const testEnv = new TestEnvironment();
+await testEnv.setupTradingTokens();
+await testEnv.verifyBalances();
+```
+
+#### Integration Testing
+
+```typescript
+class FaucetIntegrationTest {
+  private faucet: GTXFaucet;
+  
+  constructor() {
+    this.faucet = new GTXFaucet({
+      chainId: ChainId.RISE_TESTNET,
+      privateKey: process.env.TEST_PRIVATE_KEY
+    });
+  }
+  
+  async runTestSuite() {
+    console.log('🧪 Running faucet integration tests...');
+    
+    // Test 1: Request tokens
+    await this.testTokenRequest();
+    
+    // Test 2: Verify cooldown
+    await this.testCooldownPeriod();
+    
+    // Test 3: Check balance updates
+    await this.testBalanceUpdates();
+    
+    console.log('✅ All faucet tests completed');
+  }
+  
+  private async testTokenRequest() {
+    try {
+      const result = await this.faucet.requestTokens({
+        token: '0xC004514803F58b09eee24471BC9EfF3D1087CffF',
+        recipient: await this.faucet.getAddress()
+      });
+      
+      console.log('✅ Token request successful:', result.transactionHash);
+    } catch (error) {
+      console.error('❌ Token request failed:', error);
+    }
+  }
+  
+  private async testCooldownPeriod() {
+    try {
+      // This should fail due to cooldown
+      await this.faucet.requestTokens({
+        token: '0xC004514803F58b09eee24471BC9EfF3D1087CffF',
+        recipient: await this.faucet.getAddress()
+      });
+      
+      console.error('❌ Cooldown test failed - request should have been rejected');
+    } catch (error) {
+      if (error.message.includes('cooldown')) {
+        console.log('✅ Cooldown protection working correctly');
+      } else {
+        console.error('❌ Unexpected error:', error);
+      }
+    }
+  }
+  
+  private async testBalanceUpdates() {
+    const balanceBefore = await this.faucet.getBalance(
+      await this.faucet.getAddress(),
+      '0xC004514803F58b09eee24471BC9EfF3D1087CffF'
+    );
+    
+    // Wait for cooldown then request again
+    await new Promise(resolve => setTimeout(resolve, 3600000)); // 1 hour
+    
+    await this.faucet.requestTokens({
+      token: '0xC004514803F58b09eee24471BC9EfF3D1087CffF',
+      recipient: await this.faucet.getAddress()
+    });
+    
+    const balanceAfter = await this.faucet.getBalance(
+      await this.faucet.getAddress(),
+      '0xC004514803F58b09eee24471BC9EfF3D1087CffF'
+    );
+    
+    if (balanceAfter > balanceBefore) {
+      console.log('✅ Balance updated correctly');
+    } else {
+      console.error('❌ Balance not updated');
+    }
+  }
+}
+```
+
+## Development Best Practices
+
+### Test Token Management
+
+<Steps>
+  <Step title="Plan Token Needs">
+    Determine which tokens and amounts you need for testing
+  </Step>
+  <Step title="Respect Cooldowns">
+    Space out requests according to cooldown periods
+  </Step>
+  <Step title="Monitor Balances">
+    Track both personal and faucet balances to avoid waste
+  </Step>
+  <Step title="Use Efficiently">
+    Don't request more tokens than needed for testing
+  </Step>
+</Steps>
+
+### Testing Workflows
+
+<AccordionGroup>
+  <Accordion title="Smart Contract Testing">
+    **Contract Development Workflow**
+    
+    1. Deploy contracts to testnet
+    2. Request test tokens for contract addresses
+    3. Test token transfers and interactions
+    4. Verify balance changes and events
+    5. Test edge cases and error conditions
+  </Accordion>
+  
+  <Accordion title="Frontend Testing">
+    **UI/UX Testing Process**
+    
+    1. Request tokens for test accounts
+    2. Test wallet connection flows
+    3. Verify balance displays and updates
+    4. Test trading and swap interfaces
+    5. Validate transaction confirmations
+  </Accordion>
+  
+  <Accordion title="API Integration Testing">
+    **Backend Integration**
+    
+    1. Request tokens for API testing
+    2. Test balance queries and updates
+    3. Verify transaction monitoring
+    4. Test error handling and retries
+    5. Validate data synchronization
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| **Cooldown Active** | Recent request made | Wait for cooldown period to expire |
+| **Insufficient Faucet Balance** | Faucet needs refilling | Contact support or try different token |
+| **Transaction Failed** | Network congestion | Retry with higher gas price |
+| **Wrong Network** | Connected to mainnet | Switch to RiseLabs testnet |
+
+### Error Handling
+
+```typescript
+try {
+  await faucet.requestTokens({
+    token: tokenAddress,
+    recipient: userAddress
+  });
+} catch (error) {
+  if (error.message.includes('cooldown')) {
+    console.log('Please wait for cooldown period');
+  } else if (error.message.includes('insufficient')) {
+    console.log('Faucet balance too low, try again later');
+  } else if (error.message.includes('network')) {
+    console.log('Check network connection and retry');
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+### Network Configuration
+
+To use the faucet, ensure your wallet is connected to RiseLabs testnet:
+
+```javascript
+// Network configuration for RiseLabs testnet
+const riseLabsTestnet = {
+  chainId: 1802,
+  chainName: 'RiseLabs Testnet',
+  nativeCurrency: {
+    name: 'Ethereum',
+    symbol: 'ETH',
+    decimals: 18
+  },
+  rpcUrls: ['https://testnet-rpc.riselabs.xyz'],
+  blockExplorerUrls: ['https://testnet-explorer.riselabs.xyz']
+};
+```
+
+---
+
+<CardGroup cols={2}>
+  <Card
+    title="Start Trading"
+    icon="chart-line"
+    href="/trading/overview"
+  >
+    Use test tokens for trading practice
+  </Card>
+  <Card
+    title="Token Swap"
+    icon="arrows-rotate"
+    href="/tools/swap"
+  >
+    Exchange between test tokens
+  </Card>
+</CardGroup>
+
+<Info>
+The test token faucet is essential for development and testing on GTX DEX. Use it responsibly and respect cooldown periods to ensure fair access for all developers.
+</Info>
