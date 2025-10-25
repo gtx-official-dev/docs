@@ -29,12 +29,12 @@ pnpm add @gtx/sdk
 
 <CodeGroup>
 
-```typescript Basic Setup - GTX Testnet
+```typescript Basic Setup - GTX Devnet
 import { GTXClient, ChainId } from '@gtx/sdk';
 
-// Initialize the client for GTX Testnet
+// Initialize the client for GTX Devnet
 const client = new GTXClient({
-  chainId: ChainId.GTX_TESTNET,
+  chainId: ChainId.GTX_DEVNET,
   rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
   privateKey: process.env.PRIVATE_KEY // Optional for read-only operations
 });
@@ -77,7 +77,7 @@ const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 
 const client = new GTXClient({
   signer,
-  chainId: ChainId.GTX_TESTNET
+  chainId: ChainId.GTX_DEVNET
 });
 ```
 
@@ -546,7 +546,7 @@ interface GTXClientConfig {
 
 // Usage with custom configuration
 const client = new GTXClient({
-  chainId: ChainId.GTX_TESTNET,
+  chainId: ChainId.GTX_DEVNET,
   rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
   privateKey: process.env.PRIVATE_KEY,
   maxRequestsPerMinute: 600,

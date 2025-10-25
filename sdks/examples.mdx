@@ -25,7 +25,7 @@ class BasicTradingBot {
 
   constructor(privateKey: string, symbol: string = 'ETHUSDC') {
     this.client = new GTXClient({
-      chainId: ChainId.GTX_TESTNET,
+      chainId: ChainId.GTX_DEVNET,
       rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
       privateKey
     });
@@ -138,7 +138,7 @@ from gtx import GTXClient, ChainId, OrderSide, OrderType
 class BasicTradingBot:
     def __init__(self, private_key: str, symbol: str = "ETHUSDC"):
         self.client = GTXClient(
-            chain_id=ChainId.GTX_TESTNET,
+            chain_id=ChainId.GTX_DEVNET,
             rpc_url="https://testnet-rpc.gtxdex.xyz",
             private_key=private_key
         )
@@ -571,7 +571,7 @@ import { GTXClient } from '@gtx/sdk';
 const MarketDashboard = () => {
   const [marketData, setMarketData] = useState({});
   const [client] = useState(() => new GTXClient({
-    chainId: ChainId.GTX_TESTNET,
+    chainId: ChainId.GTX_DEVNET,
     rpcUrl: 'https://testnet-rpc.gtxdex.xyz'
   }));
 
@@ -932,7 +932,7 @@ class DiscordTradingBot {
     });
     
     this.gtx = new GTXClient({
-      chainId: ChainId.GTX_TESTNET,
+      chainId: ChainId.GTX_DEVNET,
       rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
       privateKey
     });

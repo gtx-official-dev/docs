@@ -1,11 +1,11 @@
 ---
 title: 'Test Token Faucet'
-description: 'Get test tokens for development and testing on GTX DEX testnet'
+description: 'Get test tokens for development and testing on GTX DEX devnet'
 ---
 
 # Test Token Faucet
 
-The GTX DEX Test Token Faucet provides developers and users with test tokens needed for development, testing, and experimentation across multiple testnets including GTX testnet and Base Sepolia.
+The GTX DEX Test Token Faucet provides developers and users with test tokens needed for development, testing, and experimentation across multiple testnets including GTX devnet and Base Sepolia.
 
 ## Overview
 
@@ -46,7 +46,7 @@ The faucet system allows users to request test tokens with built-in rate limitin
 
 ## Available Test Tokens
 
-The faucet provides the following test tokens on GTX testnet:
+The faucet provides the following test tokens on GTX devnet:
 
 ### Core Trading Tokens
 
@@ -68,7 +68,7 @@ Token addresses are shortened for display. Full addresses are available in the s
 
 <Steps>
   <Step title="Connect Wallet">
-    Connect your wallet to the GTX testnet
+    Connect your wallet to the GTX devnet
   </Step>
   <Step title="Select Token">
     Choose which test token you want to request from the dropdown
@@ -251,12 +251,12 @@ class TestEnvironment {
   
   constructor() {
     this.faucet = new GTXFaucet({
-      chainId: ChainId.GTX_TESTNET,
+      chainId: ChainId.GTX_DEVNET,
       privateKey: process.env.TEST_PRIVATE_KEY
     });
     
     this.client = new GTXClient({
-      chainId: ChainId.GTX_TESTNET,
+      chainId: ChainId.GTX_DEVNET,
       privateKey: process.env.TEST_PRIVATE_KEY
     });
   }
@@ -311,7 +311,7 @@ class FaucetIntegrationTest {
   
   constructor() {
     this.faucet = new GTXFaucet({
-      chainId: ChainId.GTX_TESTNET,
+      chainId: ChainId.GTX_DEVNET,
       privateKey: process.env.TEST_PRIVATE_KEY
     });
   }
@@ -452,7 +452,7 @@ class FaucetIntegrationTest {
 | **Cooldown Active** | Recent request made | Wait for cooldown period to expire |
 | **Insufficient Faucet Balance** | Faucet needs refilling | Try different token or wait for refill |
 | **Transaction Failed** | Network congestion | Retry with higher gas price |
-| **Wrong Network** | Connected to mainnet | Switch to GTX testnet |
+| **Wrong Network** | Connected to mainnet | Switch to GTX devnet |
 
 ### Error Handling
 
@@ -477,13 +477,13 @@ try {
 
 ### Network Configuration
 
-To use the faucet, ensure your wallet is connected to GTX testnet:
+To use the faucet, ensure your wallet is connected to GTX devnet:
 
 ```javascript
-// Network configuration for GTX testnet
-const gtxTestnet = {
+// Network configuration for GTX devnet
+const gtxDevnet = {
   chainId: 1802,
-  chainName: 'GTX Testnet',
+  chainName: 'GTX Devnet',
   nativeCurrency: {
     name: 'Ethereum',
     symbol: 'ETH',
