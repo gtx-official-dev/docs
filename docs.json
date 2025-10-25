@@ -71,19 +71,6 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "SDKs",
-        "groups": [
-          {
-            "group": "SDKs",
-            "pages": [
-              "sdks/typescript",
-              "sdks/python",
-              "sdks/examples"
-            ]
-          }
-        ]
       }
     ],
     "global": {

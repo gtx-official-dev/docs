@@ -193,56 +193,47 @@ graph LR
 
 ## Integration Examples
 
-### Direct Swap Execution
+### Direct API Integration
 
-<CodeGroup>
+Use the GTX DEX API directly for programmatic swaps:
 
-```typescript TypeScript SDK
-import { GTXClient, OrderSide } from '@gtx/sdk';
-
-const client = new GTXClient({
-  chainId: ChainId.RISE_TESTNET,
-  privateKey: process.env.PRIVATE_KEY
-});
-
-// Execute a token swap
+```javascript
+// Execute swap via REST API
 async function executeSwap() {
-  const swapResult = await client.swap({
+  const swapData = {
     fromToken: '0xWETH_ADDRESS',
-    toToken: '0xUSDC_ADDRESS', 
-    amount: '1.5', // 1.5 WETH
-    slippageTolerance: 0.003, // 0.3%
+    toToken: '0xUSDC_ADDRESS',
+    amount: '1500000000000000000', // 1.5 WETH in wei
+    slippageTolerance: '300', // 0.3% in basis points
     recipient: userAddress
+  };
+
+  const response = await fetch('https://api.gtxdex.xyz/v1/swap/quote', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(swapData)
   });
+
+  const quote = await response.json();
+  console.log('Expected output:', quote.outputAmount, 'USDC');
   
-  console.log('Swap completed:', swapResult.transactionHash);
-  console.log('Received:', swapResult.outputAmount, 'USDC');
+  // Execute the swap
+  const executeResponse = await fetch('https://api.gtxdex.xyz/v1/swap/execute', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(quote)
+  });
+
+  const result = await executeResponse.json();
+  console.log('Swap completed:', result.transactionHash);
 }
 ```
-
-```python Python SDK
-from gtx import GTXClient, ChainId
-
-client = GTXClient(
-    chain_id=ChainId.RISE_TESTNET,
-    private_key="your_private_key"
-)
-
-# Execute swap
-async def execute_swap():
-    swap_result = await client.swap(
-        from_token="0xWETH_ADDRESS",
-        to_token="0xUSDC_ADDRESS",
-        amount="1.5",
-        slippage_tolerance=0.003,
-        recipient=user_address
-    )
-    
-    print(f"Swap completed: {swap_result.transaction_hash}")
-    print(f"Received: {swap_result.output_amount} USDC")
-```
-
-</CodeGroup>
 
 ### Advanced Swap Strategies
 

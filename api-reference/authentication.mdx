@@ -241,38 +241,15 @@ Common authentication-related errors:
 }
 ```
 
-## SDK Authentication
+## Production Considerations
 
-Using official SDKs simplifies authentication handling:
+When implementing authentication in production:
 
-<Tabs>
-  <Tab title="JavaScript">
-    ```javascript
-    import { GTXClient } from '@gtx/sdk';
-    
-    const client = new GTXClient({
-      baseURL: 'https://api.gtxdex.xyz',
-      userAddress: '0x1234...'
-    });
-    
-    // SDK handles rate limiting and error handling
-    const account = await client.getAccount();
-    ```
-  </Tab>
-  
-  <Tab title="Python">
-    ```python
-    from gtx_sdk import GTXClient
-    
-    client = GTXClient(
-        base_url='https://api.gtxdex.xyz',
-        user_address='0x1234...'
-    )
-    
-    account = client.get_account()
-    ```
-  </Tab>
-</Tabs>
+- **Secure Storage**: Never expose private keys in client-side code
+- **Environment Variables**: Store sensitive data in environment variables
+- **Rate Limiting**: Implement client-side rate limiting to respect API limits
+- **Error Handling**: Properly handle authentication failures and retries
+- **Key Rotation**: Regularly rotate API keys and update applications
 
 ---
 

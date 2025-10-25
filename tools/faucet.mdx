@@ -34,7 +34,7 @@ The faucet system allows users to request test tokens with built-in rate limitin
     title="Integration Testing"
     icon="puzzle-piece"
   >
-    Test API integrations and SDK functionality
+    Test API integrations and trading functionality
   </Card>
   <Card
     title="UI/UX Testing"
@@ -193,38 +193,45 @@ The faucet implements cooldown periods to ensure fair distribution:
 
 ## Integration Examples
 
-### Direct Faucet Requests
+### API Integration
 
-<CodeGroup>
+Use the GTX DEX API to programmatically request test tokens:
 
-```typescript TypeScript SDK
-import { GTXFaucet } from '@gtx/sdk';
-
-const faucet = new GTXFaucet({
-  chainId: ChainId.RISE_TESTNET,
-  privateKey: process.env.PRIVATE_KEY
-});
-
-// Request test tokens
+```javascript
+// Request test tokens via API
 async function requestTestTokens() {
   try {
-    // Check if eligible for request
-    const isEligible = await faucet.checkEligibility(
-      userAddress,
-      tokenAddress
+    // Check eligibility first
+    const eligibilityResponse = await fetch(
+      `https://api.gtxdex.xyz/v1/faucet/eligibility?address=${userAddress}&token=0xC004514803F58b09eee24471BC9EfF3D1087CffF`,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      }
     );
     
-    if (!isEligible) {
-      console.log('Still in cooldown period');
+    const eligibility = await eligibilityResponse.json();
+    
+    if (!eligibility.eligible) {
+      console.log('Still in cooldown period. Next request available:', eligibility.nextRequestTime);
       return;
     }
     
     // Request tokens
-    const result = await faucet.requestTokens({
-      token: '0xC004514803F58b09eee24471BC9EfF3D1087CffF', // MUSDC
-      recipient: userAddress
+    const requestResponse = await fetch('https://api.gtxdex.xyz/v1/faucet/request', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        token: '0xC004514803F58b09eee24471BC9EfF3D1087CffF', // MUSDC
+        recipient: userAddress
+      })
     });
     
+    const result = await requestResponse.json();
     console.log('Tokens requested:', result.transactionHash);
     console.log('Amount received:', result.amount);
   } catch (error) {
@@ -232,41 +239,6 @@ async function requestTestTokens() {
   }
 }
 ```
-
-```python Python SDK
-from gtx import GTXFaucet, ChainId
-
-faucet = GTXFaucet(
-    chain_id=ChainId.RISE_TESTNET,
-    private_key="your_private_key"
-)
-
-# Request test tokens
-async def request_test_tokens():
-    try:
-        # Check eligibility
-        is_eligible = await faucet.check_eligibility(
-            user_address,
-            token_address
-        )
-        
-        if not is_eligible:
-            print("Still in cooldown period")
-            return
-        
-        # Request tokens
-        result = await faucet.request_tokens(
-            token="0xC004514803F58b09eee24471BC9EfF3D1087CffF",
-            recipient=user_address
-        )
-        
-        print(f"Tokens requested: {result.transaction_hash}")
-        print(f"Amount received: {result.amount}")
-    except Exception as error:
-        print(f"Faucet request failed: {error}")
-```
-
-</CodeGroup>
 
 ### Automated Testing Setup
 
