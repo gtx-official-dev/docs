@@ -1,48 +1,53 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "GTX DEX",
   "colors": {
-    "primary": "#16A34A",
+    "primary": "#0D9F7B",
     "light": "#07C983",
-    "dark": "#15803D"
+    "dark": "#0D9F7B"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/logo/gtx.png",
   "navigation": {
     "tabs": [
       {
         "tab": "Guides",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
               "development"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Trading",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "trading/overview",
+              "trading/order-types",
+              "trading/fees"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Yield & Rewards",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "rewards/overview"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Tools",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "tools/swap",
+              "tools/faucet"
+            ]
+          },
+          {
+            "group": "Developer Tools",
+            "pages": [
+              "developers/smart-contracts",
+              "developers/subgraph",
+              "developers/websockets"
             ]
           }
         ]
@@ -51,18 +56,32 @@
         "tab": "API reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "API Documentation",
             "pages": [
-              "api-reference/introduction"
+              "api-reference/introduction",
+              "api-reference/authentication"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Endpoints",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/endpoints/markets",
+              "api-reference/endpoints/trades",
+              "api-reference/endpoints/orders",
+              "api-reference/endpoints/user"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/typescript",
+              "sdks/python",
+              "sdks/examples"
             ]
           }
         ]
@@ -71,33 +90,33 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Launch App",
+          "href": "https://gtxdex.xyz",
+          "icon": "rocket"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "GitHub",
+          "href": "https://github.com/Great-Trading-eXperience",
+          "icon": "github"
         }
       ]
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/public/logo/gtx.png",
+    "dark": "/public/logo/gtx.png"
   },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:support@gtxdex.xyz"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Launch App",
+      "href": "https://gtxdex.xyz"
     }
   },
   "contextual": {
@@ -114,9 +133,9 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://twitter.com/gtxdex",
+      "github": "https://github.com/Great-Trading-eXperience",
+      "discord": "https://discord.gg/gtxdex"
     }
   }
 }
