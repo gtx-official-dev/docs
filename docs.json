@@ -3,9 +3,9 @@
   "theme": "mint",
   "name": "GTX DEX",
   "colors": {
-    "primary": "#0D9F7B",
-    "light": "#07C983",
-    "dark": "#0D9F7B"
+    "primary": "#0064C7",
+    "light": "#4285F4",
+    "dark": "#003d82"
   },
   "favicon": "/logo/gtx.png",
   "navigation": {
