@@ -29,15 +29,15 @@ conda install -c conda-forge gtx-dex-sdk
 
 <CodeGroup>
 
-```python Basic Setup - RiseLabs
+```python Basic Setup - GTX Testnet
 import asyncio
 from gtx import GTXClient, ChainId
 
 async def main():
-    # Initialize the client for RiseLabs Testnet
+    # Initialize the client for GTX Testnet
     client = GTXClient(
-        chain_id=ChainId.RISE_TESTNET,
-        rpc_url="https://testnet-rpc.riselabs.xyz",
+        chain_id=ChainId.GTX_TESTNET,
+        rpc_url="https://testnet-rpc.gtxdex.xyz",
         private_key="your_private_key"  # Optional for read-only operations
     )
     
@@ -85,8 +85,8 @@ from gtx import GTXClient, ChainId
 
 # Using environment variables for configuration
 client = GTXClient(
-    chain_id=ChainId.RISE_TESTNET,
-    rpc_url=os.getenv("GTX_RPC_URL", "https://testnet-rpc.riselabs.xyz"),
+    chain_id=ChainId.GTX_TESTNET,
+    rpc_url=os.getenv("GTX_RPC_URL", "https://testnet-rpc.gtxdex.xyz"),
     private_key=os.getenv("GTX_PRIVATE_KEY"),
     api_key=os.getenv("GTX_API_KEY")  # For enhanced rate limits
 )
@@ -372,7 +372,7 @@ class MarketMakingBot:
 
 # Usage
 async def run_market_maker():
-    client = GTXClient(chain_id=ChainId.RISE_TESTNET)
+    client = GTXClient(chain_id=ChainId.GTX_TESTNET)
     bot = MarketMakingBot(client, "ETHUSDC", 0.002, 1.0)  # 0.2% spread, 1.0 ETH size
     await bot.start()
 ```
@@ -632,8 +632,8 @@ import os
 
 # Load configuration from environment
 config = GTXConfig(
-    chain_id=ChainId.RISE_TESTNET,
-    rpc_url=os.getenv("GTX_RPC_URL", "https://testnet-rpc.riselabs.xyz"),
+    chain_id=ChainId.GTX_TESTNET,
+    rpc_url=os.getenv("GTX_RPC_URL", "https://testnet-rpc.gtxdex.xyz"),
     private_key=os.getenv("GTX_PRIVATE_KEY"),
     api_base_url=os.getenv("GTX_API_URL", "https://api.gtxdex.xyz"),
     ws_url=os.getenv("GTX_WS_URL", "wss://ws.gtxdex.xyz"),

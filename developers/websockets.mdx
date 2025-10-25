@@ -21,61 +21,7 @@ wss://ws.gtxdex.xyz
 |-----------|------|----------|-------------|
 | `apiKey` | string | No | API key for enhanced rate limits |
 | `signature` | string | No | HMAC signature for private streams |
-| `timestamp` | number | No | Request timestamp for authentication |
-
-## Authentication
-
-### Public Streams
-No authentication required for market data streams.
-
-### Private Streams
-Requires API key and signature for user-specific data.
-
-<CodeGroup>
-
-```javascript Authentication
-import crypto from 'crypto';
-
-const apiKey = 'your-api-key';
-const apiSecret = 'your-api-secret';
-const timestamp = Date.now();
-
-// Create signature
-const message = `timestamp=${timestamp}`;
-const signature = crypto
-  .createHmac('sha256', apiSecret)
-  .update(message)
-  .digest('hex');
-
-// Connect with authentication
-const ws = new WebSocket(`wss://ws.gtxdex.xyz?apiKey=${apiKey}&timestamp=${timestamp}&signature=${signature}`);
-```
-
-```python Python Authentication
-import hmac
-import hashlib
-import time
-import websocket
-
-api_key = "your-api-key"
-api_secret = "your-api-secret"
-timestamp = int(time.time() * 1000)
-
-# Create signature
-message = f"timestamp={timestamp}"
-signature = hmac.new(
-    api_secret.encode('utf-8'),
-    message.encode('utf-8'),
-    hashlib.sha256
-).hexdigest()
-
-# Connect with authentication
-ws_url = f"wss://ws.gtxdex.xyz?apiKey={api_key}&timestamp={timestamp}&signature={signature}"
-ws = websocket.WebSocket()
-ws.connect(ws_url)
-```
-
-</CodeGroup>
+| `timestamp` | number | No | Request timestamp |
 
 ## Message Format
 
@@ -323,7 +269,7 @@ Real-time OHLCV candlestick data.
 
 ### User Order Updates
 
-Real-time updates for user orders (requires authentication).
+Real-time updates for user orders.
 
 <AccordionGroup>
   <Accordion title="Subscribe to Order Updates">
@@ -483,12 +429,7 @@ class GTXWebSocketClient {
     return new Promise((resolve, reject) => {
       let connectionUrl = this.url;
       
-      // Add authentication if provided
-      if (this.apiKey && this.apiSecret) {
-        const timestamp = Date.now();
-        const signature = this.createSignature(timestamp);
-        connectionUrl += `?apiKey=${this.apiKey}&timestamp=${timestamp}&signature=${signature}`;
-      }
+      // Connect to WebSocket
       
       this.ws = new WebSocket(connectionUrl);
       
@@ -598,7 +539,7 @@ class GTXWebSocketClient {
     this.subscribe(`kline_${interval}@${symbol}`, handler);
   }
 
-  // Private streams (require authentication)
+  // Private streams
   subscribeUserOrders(handler: (data: any) => void): void {
     this.subscribe('executionReport', handler);
   }
@@ -661,11 +602,7 @@ class GTXWebSocketClient:
     async def connect(self):
         connection_url = self.url
         
-        # Add authentication if provided
-        if self.api_key and self.api_secret:
-            timestamp = int(time.time() * 1000)
-            signature = self._create_signature(timestamp)
-            connection_url += f"?apiKey={self.api_key}&timestamp={timestamp}&signature={signature}"
+        # Connect to WebSocket
         
         try:
             self.ws = await websockets.connect(connection_url)
@@ -979,7 +916,7 @@ class StreamAggregator {
 | `1006` | Abnormal closure | Network issue, reconnect |
 | `4001` | Invalid message format | Check JSON format |
 | `4002` | Invalid stream name | Verify stream syntax |
-| `4003` | Authentication failed | Check API credentials |
+| `4003` | Connection failed | Check connection parameters |
 | `4004` | Rate limit exceeded | Reduce request frequency |
 
 ### Robust Error Handling

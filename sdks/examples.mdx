@@ -25,8 +25,8 @@ class BasicTradingBot {
 
   constructor(privateKey: string, symbol: string = 'ETHUSDC') {
     this.client = new GTXClient({
-      chainId: ChainId.RISE_TESTNET,
-      rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+      chainId: ChainId.GTX_TESTNET,
+      rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
       privateKey
     });
     this.symbol = symbol;
@@ -138,8 +138,8 @@ from gtx import GTXClient, ChainId, OrderSide, OrderType
 class BasicTradingBot:
     def __init__(self, private_key: str, symbol: str = "ETHUSDC"):
         self.client = GTXClient(
-            chain_id=ChainId.RISE_TESTNET,
-            rpc_url="https://testnet-rpc.riselabs.xyz",
+            chain_id=ChainId.GTX_TESTNET,
+            rpc_url="https://testnet-rpc.gtxdex.xyz",
             private_key=private_key
         )
         self.symbol = symbol
@@ -571,8 +571,8 @@ import { GTXClient } from '@gtx/sdk';
 const MarketDashboard = () => {
   const [marketData, setMarketData] = useState({});
   const [client] = useState(() => new GTXClient({
-    chainId: ChainId.RISE_TESTNET,
-    rpcUrl: 'https://testnet-rpc.riselabs.xyz'
+    chainId: ChainId.GTX_TESTNET,
+    rpcUrl: 'https://testnet-rpc.gtxdex.xyz'
   }));
 
   useEffect(() => {
@@ -932,8 +932,8 @@ class DiscordTradingBot {
     });
     
     this.gtx = new GTXClient({
-      chainId: ChainId.RISE_TESTNET,
-      rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+      chainId: ChainId.GTX_TESTNET,
+      rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
       privateKey
     });
 

@@ -5,7 +5,7 @@ description: 'Get test tokens for development and testing on GTX DEX testnet'
 
 # Test Token Faucet
 
-The GTX DEX Test Token Faucet provides developers and users with test tokens needed for development, testing, and experimentation across multiple testnets including RiseLabs testnet and Base Sepolia.
+The GTX DEX Test Token Faucet provides developers and users with test tokens needed for development, testing, and experimentation across multiple testnets including GTX testnet and Base Sepolia.
 
 ## Overview
 
@@ -46,7 +46,7 @@ The faucet system allows users to request test tokens with built-in rate limitin
 
 ## Available Test Tokens
 
-The faucet provides the following test tokens on RiseLabs testnet:
+The faucet provides the following test tokens on GTX testnet:
 
 ### Core Trading Tokens
 
@@ -68,7 +68,7 @@ Token addresses are shortened for display. Full addresses are available in the s
 
 <Steps>
   <Step title="Connect Wallet">
-    Connect your wallet to the RiseLabs testnet
+    Connect your wallet to the GTX testnet
   </Step>
   <Step title="Select Token">
     Choose which test token you want to request from the dropdown
@@ -251,12 +251,12 @@ class TestEnvironment {
   
   constructor() {
     this.faucet = new GTXFaucet({
-      chainId: ChainId.RISE_TESTNET,
+      chainId: ChainId.GTX_TESTNET,
       privateKey: process.env.TEST_PRIVATE_KEY
     });
     
     this.client = new GTXClient({
-      chainId: ChainId.RISE_TESTNET,
+      chainId: ChainId.GTX_TESTNET,
       privateKey: process.env.TEST_PRIVATE_KEY
     });
   }
@@ -311,7 +311,7 @@ class FaucetIntegrationTest {
   
   constructor() {
     this.faucet = new GTXFaucet({
-      chainId: ChainId.RISE_TESTNET,
+      chainId: ChainId.GTX_TESTNET,
       privateKey: process.env.TEST_PRIVATE_KEY
     });
   }
@@ -450,9 +450,9 @@ class FaucetIntegrationTest {
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | **Cooldown Active** | Recent request made | Wait for cooldown period to expire |
-| **Insufficient Faucet Balance** | Faucet needs refilling | Contact support or try different token |
+| **Insufficient Faucet Balance** | Faucet needs refilling | Try different token or wait for refill |
 | **Transaction Failed** | Network congestion | Retry with higher gas price |
-| **Wrong Network** | Connected to mainnet | Switch to RiseLabs testnet |
+| **Wrong Network** | Connected to mainnet | Switch to GTX testnet |
 
 ### Error Handling
 
@@ -477,20 +477,20 @@ try {
 
 ### Network Configuration
 
-To use the faucet, ensure your wallet is connected to RiseLabs testnet:
+To use the faucet, ensure your wallet is connected to GTX testnet:
 
 ```javascript
-// Network configuration for RiseLabs testnet
-const riseLabsTestnet = {
+// Network configuration for GTX testnet
+const gtxTestnet = {
   chainId: 1802,
-  chainName: 'RiseLabs Testnet',
+  chainName: 'GTX Testnet',
   nativeCurrency: {
     name: 'Ethereum',
     symbol: 'ETH',
     decimals: 18
   },
-  rpcUrls: ['https://testnet-rpc.riselabs.xyz'],
-  blockExplorerUrls: ['https://testnet-explorer.riselabs.xyz']
+  rpcUrls: ['https://testnet-rpc.gtxdex.xyz'],
+  blockExplorerUrls: ['https://testnet-explorer.gtxdex.xyz']
 };
 ```
 

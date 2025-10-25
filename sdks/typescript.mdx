@@ -29,13 +29,13 @@ pnpm add @gtx/sdk
 
 <CodeGroup>
 
-```typescript Basic Setup - RiseLabs
+```typescript Basic Setup - GTX Testnet
 import { GTXClient, ChainId } from '@gtx/sdk';
 
-// Initialize the client for RiseLabs Testnet
+// Initialize the client for GTX Testnet
 const client = new GTXClient({
-  chainId: ChainId.RISE_TESTNET,
-  rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+  chainId: ChainId.GTX_TESTNET,
+  rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
   privateKey: process.env.PRIVATE_KEY // Optional for read-only operations
 });
 
@@ -72,12 +72,12 @@ import { GTXClient } from '@gtx/sdk';
 import { ethers } from 'ethers';
 
 // Use existing provider/signer
-const provider = new ethers.JsonRpcProvider('https://testnet-rpc.riselabs.xyz');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.gtxdex.xyz');
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 
 const client = new GTXClient({
   signer,
-  chainId: ChainId.RISE_TESTNET
+  chainId: ChainId.GTX_TESTNET
 });
 ```
 
@@ -546,8 +546,8 @@ interface GTXClientConfig {
 
 // Usage with custom configuration
 const client = new GTXClient({
-  chainId: ChainId.RISE_TESTNET,
-  rpcUrl: 'https://testnet-rpc.riselabs.xyz',
+  chainId: ChainId.GTX_TESTNET,
+  rpcUrl: 'https://testnet-rpc.gtxdex.xyz',
   privateKey: process.env.PRIVATE_KEY,
   maxRequestsPerMinute: 600,
   retryAttempts: 3,
